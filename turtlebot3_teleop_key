@@ -48,8 +48,6 @@ ANG_VEL_STEP_SIZE = 0.1
 left =0
 right =0
 READ_TIME = 0
-g_data = 0
-
 msg = """
 Control Your TurtleBot3!
 ---------------------------
@@ -142,9 +140,6 @@ def callbacktwo(data):
 
 
 if __name__=="__main__":
-    global g_data
-    global right
-    global LEFT_LIGHT_READ
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
 
@@ -164,11 +159,22 @@ if __name__=="__main__":
         while(1):
             sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
             sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
+
             if(right < left):
+                target_linear_vel = 0.01
+                target_angular_vel = -0.1
                 print("turn Right !!! W-_-W")
+            elif(left == 201.0 and  right == 201.0):
+                target_linear_vel = -0.1
+                target_angular_vel = 0.0
+                print("DaoChe")
             elif(left < right):
+                target_linear_vel = 0.01
+                target_angular_vel = 0.1
                 print("turn left !!! //A_A//")
             elif(left == right):
+                target_linear_vel = 0.5
+                target_angular_vel = 0.0
                 print("perfect !!!")
             key = getKey()
             if key == 'w':
