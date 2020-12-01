@@ -45,8 +45,8 @@ WAFFLE_MAX_ANG_VEL = 1.82
 LIN_VEL_STEP_SIZE = 0.01
 ANG_VEL_STEP_SIZE = 0.1
 
-LEFT_LIGHT_READ =0
-LIGHT_READ =0
+left =0
+right =0
 READ_TIME = 0
 g_data = 0
 
@@ -131,19 +131,19 @@ def checkAngularLimitVelocity(vel):
 
 
 def callbackone(data):
-    global LIGHT_READ
-    LIGHT_READ = data.illuminance
+    global right
+    right = data.illuminance
 
 
 
 def callbacktwo(data):
-    global LEFT_LIGHT_READ
-    LEFT_LIGHT_READ = data.illuminance
+    global left
+    left = data.illuminance
 
 
 if __name__=="__main__":
     global g_data
-    global LIGHT_READ
+    global right
     global LEFT_LIGHT_READ
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
@@ -162,8 +162,16 @@ if __name__=="__main__":
     try:
         print(msg)
         while(1):
+            sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
+            sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
+            if(right < left):
+                print("turn Right !!! W-_-W")
+            elif(left < right):
+                print("turn left !!! //A_A//")
+            elif(left == right):
+                print("perfect !!!")
             key = getKey()
-            if key == 'w' :
+            if key == 'w':
                 sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
 
                 sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
@@ -171,8 +179,8 @@ if __name__=="__main__":
                 target_linear_vel = checkLinearLimitVelocity(target_linear_vel + LIN_VEL_STEP_SIZE)
                 status = status + 1
                 print("--------------------------------------------------------------------------------------")
-                print(LIGHT_READ)
-                print(LEFT_LIGHT_READ)
+                print(right)
+                print(left)
                 print("--------------------------------------------------------------------------------------")
                 print(vels(target_linear_vel,target_angular_vel))
             elif key == 'x':
