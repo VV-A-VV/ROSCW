@@ -28,7 +28,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import rospy
+import math
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
+from tf.transformations import euler_from_quaternion
 from sensor_msgs.msg import Illuminance
 import sys, select, os
 if os.name == 'nt':
@@ -47,6 +50,9 @@ ANG_VEL_STEP_SIZE = 0.1
 
 left =0
 right =0
+pose_x = 0
+pose_y = 0
+yaw_deg = 0
 READ_TIME = 0
 msg = """
 Control Your TurtleBot3!
@@ -137,15 +143,26 @@ def callbackone(data):
 def callbacktwo(data):
     global left
     left = data.illuminance
+def callback_update_position(data):
+    global pose_x
+    global pose_y
+    global yaw_deg
+    pose_x = round(data.pose.pose.position.x, 4)
+    pose_y = round(data.pose.pose.position.y, 4)
+    quaternion = data.pose.pose.orientation
+    orientation_list = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
+    (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+    yaw_deg = round(math.degrees(yaw), 4)
+    # print("WEIZHI:",pose_x,pose_y)
 
-
+    # print("rest:", orientation_list, yaw_deg)
 if __name__=="__main__":
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
 
     rospy.init_node('topic_subscriber')
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
-
+    Kp = 10
     turtlebot3_model = rospy.get_param("model", "burger")
 
     status = 0
@@ -159,23 +176,28 @@ if __name__=="__main__":
         while(1):
             sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
             sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
-
+            # sub3 = rospy.Subscriber("odom", Odometry, callback_update_position)
             if(right < left):
                 target_linear_vel = 0.01
                 target_angular_vel = -0.1
-                print("turn Right !!! W-_-W")
+                print(pose_x, pose_y, yaw_deg)
+                # print("turn Right !!! W-_-W")
             elif(left == 201.0 and  right == 201.0):
                 target_linear_vel = -0.1
                 target_angular_vel = 0.0
-                print("DaoChe")
+                print(pose_x, pose_y, yaw_deg)
+                # print("DaoChe")
             elif(left < right):
                 target_linear_vel = 0.01
                 target_angular_vel = 0.1
-                print("turn left !!! //A_A//")
+                print(pose_x, pose_y, yaw_deg)
+                # print("turn left !!! //A_A//")
             elif(left == right):
                 target_linear_vel = 0.5
                 target_angular_vel = 0.0
-                print("perfect !!!")
+                print(pose_x, pose_y, yaw_deg)
+
+                # print("perfect !!!")
             key = getKey()
             if key == 'w':
                 sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
