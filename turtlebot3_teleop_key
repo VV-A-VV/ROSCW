@@ -34,6 +34,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 from sensor_msgs.msg import Illuminance
+from sensor_msgs.msg import LaserScan
 import sys, select, os
 if os.name == 'nt':
   import msvcrt
@@ -56,12 +57,9 @@ Moving around:
         w
    a    s    d
         x
-
 w/x : increase/decrease linear velocity (Burger : ~ 0.22, Waffle and Waffle Pi : ~ 0.26)
 a/d : increase/decrease angular velocity (Burger : ~ 2.84, Waffle and Waffle Pi : ~ 1.82)
-
 space key, s : force stop
-
 CTRL-C to quit
 """
 
@@ -83,50 +81,6 @@ def getKey():
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
     return key
 
-# def vels(target_linear_vel, target_angular_vel):
-#     return "currently:\tlinear vel %s\t angular vel %s " % (target_linear_vel,target_angular_vel)
-#
-# def makeSimpleProfile(output, input, slop):
-#     if input > output:
-#         output = min( input, output + slop )
-#     elif input < output:
-#         output = max( input, output - slop )
-#     else:
-#         output = input
-#
-#     return output
-#
-# def constrain(input, low, high):
-#     if input < low:
-#       input = low
-#     elif input > high:
-#       input = high
-#     else:
-#       input = input
-#
-#     return input
-#
-# def checkLinearLimitVelocity(vel):
-#     if turtlebot3_model == "burger":
-#       vel = constrain(vel, -BURGER_MAX_LIN_VEL, BURGER_MAX_LIN_VEL)
-#     elif turtlebot3_model == "waffle" or turtlebot3_model == "waffle_pi":
-#       vel = constrain(vel, -WAFFLE_MAX_LIN_VEL, WAFFLE_MAX_LIN_VEL)
-#     else:
-#       vel = constrain(vel, -BURGER_MAX_LIN_VEL, BURGER_MAX_LIN_VEL)
-#
-#     return vel
-
-# a = 0
-# def checkAngularLimitVelocity(vel):
-#     if turtlebot3_model == "burger":
-#       vel = constrain(vel, -BURGER_MAX_ANG_VEL, BURGER_MAX_ANG_VEL)
-#     elif turtlebot3_model == "waffle" or turtlebot3_model == "waffle_pi":
-#       vel = constrain(vel, -WAFFLE_MAX_ANG_VEL, WAFFLE_MAX_ANG_VEL)
-#     else:
-#       vel = constrain(vel, -BURGER_MAX_ANG_VEL, BURGER_MAX_ANG_VEL)
-#     return vel
-#
-#
 
 
 def callbackone(data):
@@ -152,6 +106,8 @@ def callback_update_position(data):
     # print("WEIZHI:",pose_x,pose_y)
 
     # print("rest:", orientation_list, yaw_deg)
+def callLaser(data):
+    print(data)
 if __name__=="__main__":
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
@@ -183,35 +139,36 @@ if __name__=="__main__":
 
     pub.publish(twist)
     # time.sleep(0.1)
-
+    angPosStep = 1e-3
+    Kp = 0.0013
+    Kd = 0.00006
+    Tp = 0.06
+    prevErr = 0
+    derivative = 0
+    desAngPos = 0
+    timep =0
     try:
         print(msg)
         while(1):
             sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
             sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
             sub3 = rospy.Subscriber("odom", Odometry, callback_update_position)
-            angPosStep = 1e-3
-            Kp = 0.05
-            Kd = 0.002
-            Tp = 0.1
-            prevErr = 0
-            derivative = 0
-            dt = 0.1
-            desAngPos = 0
+            sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
             target_linear_vel = Tp
-            if(right < left):
-                target_linear_vel = 0.01
+            if(right < left-20):
+
+                target_linear_vel = 0.0
                 # target_angular_vel = -0.2
                 # print( target_angular_vel , phi)
                 # print(pose_x, pose_y, yaw_deg)
                 print("turn Right !!! W-_-W")
-            # elif(left == 201.0 and  right == 201.0):
-            #     target_linear_vel = -Tp
-            #     target_angular_vel = 0.0
-            #     # print(pose_x, pose_y, yaw_deg)
-            #     print("DaoChe")
-            elif(left < right):
-                target_linear_vel = 0.01
+            elif(left == 201.0 and  right == 201.0):
+                target_linear_vel = -Tp
+                # print(pose_x, pose_y, yaw_deg)
+                print("DaoChe")
+            elif(left < right-20):
+
+                target_linear_vel = 0.0
 
                 # target_angular_vel = 0.2
                 # print( target_angular_vel , phi)
@@ -224,50 +181,28 @@ if __name__=="__main__":
             #
             #     print("perfect !!!")
             error = right - left
+            t = time.time()
+            dt = t- timep
             derivative = (error - prevErr)/dt
+            timep = t
+            print (derivative)
+
             target_angular_vel = Kp*error + Kd*derivative
+
             print(target_angular_vel)
+            print(Kd*derivative)
+            print("-----------------------------------------------------------------")
             # print(target_angular_vel,Kp*error, Kd*derivative)
             prevErr = error
-            # key = getKey()
-            # if key == 'w':
-            #     sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
-            #
-            #     sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
-            #
-            #     target_linear_vel = checkLinearLimitVelocity(target_linear_vel + LIN_VEL_STEP_SIZE)
-            #     status = status + 1
-            #     print("--------------------------------------------------------------------------------------")
-            #     print(right)
-            #     print(left)
-            #     print("--------------------------------------------------------------------------------------")
-            #     print(vels(target_linear_vel,target_angular_vel))
-            # elif key == 'x':
-            #     target_linear_vel = checkLinearLimitVelocity(target_linear_vel - LIN_VEL_STEP_SIZE)
-            #     status = status + 1
-            #     print(vels(target_linear_vel, target_angular_vel))
-            # elif key == 'a':
-            #     target_angular_vel = checkAngularLimitVelocity(target_angular_vel + ANG_VEL_STEP_SIZE)
-            #     status = status + 1
-            #     print(vels(target_linear_vel, target_angular_vel))
-            # elif key == 'd':
-            #     target_angular_vel = checkAngularLimitVelocity(target_angular_vel - ANG_VEL_STEP_SIZE)
-            #     status = status + 1
-            #     print(vels(target_linear_vel, target_angular_vel))
-            # elif key == ' ' or key == 's':
-            #     target_linear_vel = 0.0
-            #     control_linear_vel = 0.0
-            #     target_angular_vel = 0.0
-            #     control_angular_vel = 0.0
-            #     print(vels(target_linear_vel, target_angular_vel))
-            # else:
-            #     if (key == '\x03'):
-            #         break
-            #
-            # if status == 20 :
-            #     print(msg)
-            #     status = 0
-
+            key = getKey()
+            if key == ' ' or key == 's':
+                target_linear_vel = 0.0
+                control_linear_vel = 0.0
+                target_angular_vel = 0.0
+                control_angular_vel = 0.0
+            else:
+                if (key == '\x03'):
+                    break
             twist = Twist()
 
             # control_linear_vel = makeSimpleProfile(control_linear_vel, target_linear_vel, (LIN_VEL_STEP_SIZE/2.0))
