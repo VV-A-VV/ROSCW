@@ -107,7 +107,52 @@ def callback_update_position(data):
 
     # print("rest:", orientation_list, yaw_deg)
 def callLaser(data):
-    print(data)
+    global distance
+    distance = data.ranges
+    # print(len(data.ranges))
+
+def avoidObstacle():
+    while(1):
+        sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
+        sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
+        sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
+
+        newDistance = []
+        isObstacle = False
+        if (len(distance) == 360):
+            for i in range(0, 360):
+                if (distance[i] > 0.2 and distance[i] < 0.5 and ((i > 0 and i < 45) or (i > 315 and i < 360))):
+                    isObstacle = True
+                if (distance[i] < 0.2 or distance[i] == "inf"):
+                    newDistance.append(999)
+                else:
+                    newDistance.append(distance[i])
+        if(left != 201.0 and right != 201.0 and isObstacle == False):
+            break
+        if(newDistance.index(min(newDistance)) > 180):
+            #turn left
+            target_angular_vel = 0.2
+            target_linear_vel = 0.1
+        else:
+            target_angular_vel = -0.2
+            target_linear_vel = 0.1
+            #turn right
+        # print(newDistance)
+        twist = Twist()
+
+        # control_linear_vel = makeSimpleProfile(control_linear_vel, target_linear_vel, (LIN_VEL_STEP_SIZE/2.0))
+        control_linear_vel = target_linear_vel
+        twist.linear.x = control_linear_vel;
+        twist.linear.y = 0.0;
+        twist.linear.z = 0.0
+
+        # control_angular_vel = makeSimpleProfile(control_angular_vel, target_angular_vel, (ANG_VEL_STEP_SIZE/2.0))
+        control_angular_vel = target_angular_vel
+        twist.angular.x = 0.0;
+        twist.angular.y = 0.0;
+        twist.angular.z = control_angular_vel
+
+        pub.publish(twist)
 if __name__=="__main__":
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
@@ -136,7 +181,7 @@ if __name__=="__main__":
     twist.angular.x = 0.0;
     twist.angular.y = 0.0;
     twist.angular.z = control_angular_vel
-
+    distance = []
     pub.publish(twist)
     # time.sleep(0.1)
     angPosStep = 1e-3
@@ -155,6 +200,19 @@ if __name__=="__main__":
             sub3 = rospy.Subscriber("odom", Odometry, callback_update_position)
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
             target_linear_vel = Tp
+            newDistance = []
+            isObstacle = False
+            if(len(distance) == 360):
+                for i in range(0,360):
+                    if(distance[i] > 0.2 and distance[i] < 0.5 and( (i > 0 and i < 45) or (i > 315 and i < 360))):
+                        isObstacle = True
+                    if(distance[i] < 0.2 or distance[i] == "inf"):
+                        newDistance.append(999)
+                    else:
+                        newDistance.append(distance[i])
+            if(isObstacle):
+                avoidObstacle()
+            # print(newDistance)
             if(right < left-20):
 
                 target_linear_vel = 0.0
