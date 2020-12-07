@@ -92,52 +92,6 @@ def vels(target_linear_vel, target_angular_vel):
     return "currently:\tlinear vel %s\t angular vel %s " % (target_linear_vel, target_angular_vel)
 
 
-def makeSimpleProfile(output, input, slop):
-    if input > output:
-        output = min(input, output + slop)
-    elif input < output:
-        output = max(input, output - slop)
-    else:
-        output = input
-
-    return output
-
-
-def constrain(input, low, high):
-    if input < low:
-        input = low
-    elif input > high:
-        input = high
-    else:
-        input = input
-
-    return input
-
-
-def checkLinearLimitVelocity(vel):
-    if turtlebot3_model == "burger":
-        vel = constrain(vel, -BURGER_MAX_LIN_VEL, BURGER_MAX_LIN_VEL)
-    elif turtlebot3_model == "waffle" or turtlebot3_model == "waffle_pi":
-        vel = constrain(vel, -WAFFLE_MAX_LIN_VEL, WAFFLE_MAX_LIN_VEL)
-    else:
-        vel = constrain(vel, -BURGER_MAX_LIN_VEL, BURGER_MAX_LIN_VEL)
-
-    return vel
-
-
-a = 0
-
-
-def checkAngularLimitVelocity(vel):
-    if turtlebot3_model == "burger":
-        vel = constrain(vel, -BURGER_MAX_ANG_VEL, BURGER_MAX_ANG_VEL)
-    elif turtlebot3_model == "waffle" or turtlebot3_model == "waffle_pi":
-        vel = constrain(vel, -WAFFLE_MAX_ANG_VEL, WAFFLE_MAX_ANG_VEL)
-    else:
-        vel = constrain(vel, -BURGER_MAX_ANG_VEL, BURGER_MAX_ANG_VEL)
-    return vel
-
-
 def biggerZero(data):
     if data < 0:
         return 0
@@ -197,7 +151,7 @@ if __name__ == "__main__":
                 target_linear_vel = biggerZero(130 + error) * Kl + 0.0005
 
                 derivative = (error - preError) / dt
-                target_angular_vel = checkAngularLimitVelocity(error * Kp + Kd * derivative)
+                target_angular_vel = error * Kp + Kd * derivative
 
                 print("turn Right !!! W-_-W")
                 print("error:", error)
@@ -217,7 +171,7 @@ if __name__ == "__main__":
                 # target_linear_vel = -0.1
                 # target_angular_vel = 0.0
                 if control_linear_vel >= 0:
-                    target_linear_vel = checkLinearLimitVelocity(target_linear_vel - 0.003)
+                    target_linear_vel = target_linear_vel - 0.003
                 else:
                     target_linear_vel = - 0.003
 
@@ -251,7 +205,7 @@ if __name__ == "__main__":
                 target_linear_vel = biggerZero(130 - error) * Kl + 0.0005
 
                 derivative = (error - preError) / dt
-                target_angular_vel = checkAngularLimitVelocity(error * Kp + Kd * derivative)
+                target_angular_vel = error * Kp + Kd * derivative
 
 
                 print("turn left !!! //A_A//")
@@ -268,54 +222,16 @@ if __name__ == "__main__":
                 print("Currert Line velocity:", control_linear_vel)
                 print("----------------------------------------------")
             elif (left == right):
-                # # target_linear_vel = 0.5
-                # # target_angular_vel = 0.0
-                # if preError == 0:
-                #     target_angular_vel = 0
-                # else:
-                #     target_angular_vel = - control_angular_vel
-                #
-                # target_linear_vel = checkLinearLimitVelocity(0.05)
-                # target_angular_vel = 0.0
+
                 target_linear_vel = 130 * Kl + 0.0005
 
                 print("perfect !!!")
                 preError = error
 
             key = getKey()
-            if key == 'w':
-                sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
 
-                sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
-
-                target_linear_vel = checkLinearLimitVelocity(target_linear_vel + LIN_VEL_STEP_SIZE)
-                status = status + 1
-                print("--------------------------------------------------------------------------------------")
-                print(right)
-                print(left)
-                print("--------------------------------------------------------------------------------------")
-                print(vels(target_linear_vel, target_angular_vel))
-            elif key == 'x':
-                target_linear_vel = checkLinearLimitVelocity(target_linear_vel - LIN_VEL_STEP_SIZE)
-                status = status + 1
-                print(vels(target_linear_vel, target_angular_vel))
-            elif key == 'a':
-                target_angular_vel = checkAngularLimitVelocity(target_angular_vel + ANG_VEL_STEP_SIZE)
-                status = status + 1
-                print(vels(target_linear_vel, target_angular_vel))
-            elif key == 'd':
-                target_angular_vel = checkAngularLimitVelocity(target_angular_vel - ANG_VEL_STEP_SIZE)
-                status = status + 1
-                print(vels(target_linear_vel, target_angular_vel))
-            elif key == ' ' or key == 's':
-                target_linear_vel = 0.0
-                control_linear_vel = 0.0
-                target_angular_vel = 0.0
-                control_angular_vel = 0.0
-                print(vels(target_linear_vel, target_angular_vel))
-            else:
-                if (key == '\x03'):
-                    break
+            if (key == '\x03'):
+                break
 
             if status == 20:
                 print(msg)
@@ -323,13 +239,11 @@ if __name__ == "__main__":
 
             twist = Twist()
 
-            # control_linear_vel = makeSimpleProfile(control_linear_vel, target_linear_vel, (LIN_VEL_STEP_SIZE / 2.0))
             control_linear_vel = target_linear_vel
             twist.linear.x = control_linear_vel;
             twist.linear.y = 0.0;
             twist.linear.z = 0.0
 
-            # control_angular_vel = makeSimpleProfile(control_angular_vel, target_angular_vel, (ANG_VEL_STEP_SIZE / 2.0))
             control_angular_vel = target_angular_vel
             twist.angular.x = 0.0;
             twist.angular.y = 0.0;
