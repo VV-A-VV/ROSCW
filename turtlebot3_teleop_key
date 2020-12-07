@@ -46,7 +46,7 @@ BURGER_MAX_LIN_VEL = 0.22
 BURGER_MAX_ANG_VEL = 2.84
 
 WAFFLE_MAX_LIN_VEL = 0.18
-WAFFLE_MAX_ANG_VEL = 0.18
+WAFFLE_MAX_ANG_VEL = 100
 
 LIN_VEL_STEP_SIZE = 0.08
 ANG_VEL_STEP_SIZE = 0.08
@@ -169,10 +169,10 @@ if __name__ == "__main__":
     control_linear_vel = 0.0
     control_angular_vel = 0.0
 
-    Kp = 0.003
-    Kd = 0.0003
+    Kp = 0.0013
+    Kd = 0.00015
 
-    Kl = 0.0002
+    Kl = 0.0003
     preError = 0
     dt = 0.01
 
@@ -194,15 +194,17 @@ if __name__ == "__main__":
                 if left == 201.0:
                     error = -130
 
-                target_linear_vel = biggerZero(130 + error) * Kl + 0.005
+                target_linear_vel = biggerZero(130 + error) * Kl + 0.0005
 
                 derivative = (error - preError) / dt
                 target_angular_vel = checkAngularLimitVelocity(error * Kp + Kd * derivative)
 
-                preError = error
                 print("turn Right !!! W-_-W")
                 print("error:", error)
                 print("PreError:", preError)
+
+                preError = error
+
                 print("---------------------------------------------")
                 print("Targrt Angle velocity:", target_angular_vel)
                 print("Targrt Line velocity:", target_linear_vel)
@@ -215,9 +217,11 @@ if __name__ == "__main__":
                 # target_linear_vel = -0.1
                 # target_angular_vel = 0.0
                 if control_linear_vel >= 0:
-                    target_linear_vel = checkLinearLimitVelocity(target_linear_vel - 0.02)
+                    target_linear_vel = checkLinearLimitVelocity(target_linear_vel - 0.003)
                 else:
-                    target_linear_vel = 0.02
+                    target_linear_vel = - 0.003
+
+                target_angular_vel = 0.0
 
                 # dao = False
                 #
@@ -244,16 +248,18 @@ if __name__ == "__main__":
                 if right == 201.0:
                     error = 130
 
-                target_linear_vel = biggerZero(130 - error) * Kl + 0.005
+                target_linear_vel = biggerZero(130 - error) * Kl + 0.0005
 
                 derivative = (error - preError) / dt
                 target_angular_vel = checkAngularLimitVelocity(error * Kp + Kd * derivative)
 
 
-                preError = error
                 print("turn left !!! //A_A//")
                 print("error:", error)
                 print("PreError:", preError)
+
+                preError = error
+
                 print("---------------------------------------------")
                 print("Targrt Angle velocity:", target_angular_vel)
                 print("Targrt Line velocity:", target_linear_vel)
@@ -262,15 +268,17 @@ if __name__ == "__main__":
                 print("Currert Line velocity:", control_linear_vel)
                 print("----------------------------------------------")
             elif (left == right):
-                # target_linear_vel = 0.5
+                # # target_linear_vel = 0.5
+                # # target_angular_vel = 0.0
+                # if preError == 0:
+                #     target_angular_vel = 0
+                # else:
+                #     target_angular_vel = - control_angular_vel
+                #
+                # target_linear_vel = checkLinearLimitVelocity(0.05)
                 # target_angular_vel = 0.0
-                if preError == 0:
-                    target_angular_vel = 0
-                else:
-                    target_angular_vel = - control_angular_vel
+                target_linear_vel = 130 * Kl + 0.0005
 
-                target_linear_vel = checkLinearLimitVelocity(0.05)
-                # target_angular_vel = 0.0
                 print("perfect !!!")
                 preError = error
 
