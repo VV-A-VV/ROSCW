@@ -36,16 +36,14 @@ from tf.transformations import euler_from_quaternion
 from sensor_msgs.msg import Illuminance
 from sensor_msgs.msg import LaserScan
 import sys, select, os
+
 if os.name == 'nt':
-  import msvcrt
+    import msvcrt
 else:
-  import tty, termios
+    import tty, termios
 
-
-
-
-left =0
-right =0
+left = 0
+right = 0
 pose_x = 0
 pose_y = 0
 phi = 0
@@ -68,9 +66,10 @@ e = """
 Communications Failed
 """
 
+
 def getKey():
     if os.name == 'nt':
-      return msvcrt.getch()
+        return msvcrt.getch()
 
     tty.setraw(sys.stdin.fileno())
     rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
@@ -83,19 +82,22 @@ def getKey():
     return key
 
 
-
 def callbackone(data):
     global right
     right = data.illuminance
+
 
 def biggerZero(data):
     if data < 0:
         return 0
     return data
 
+
 def callbacktwo(data):
     global left
     left = data.illuminance
+
+
 def callback_update_position(data):
     global pose_x
     global pose_y
@@ -110,13 +112,15 @@ def callback_update_position(data):
     # print("WEIZHI:",pose_x,pose_y)
 
     # print("rest:", orientation_list, yaw_deg)
+
+
 def callLaser(data):
     global distance
     distance = data.ranges
     # print(len(data.ranges))
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
 
@@ -127,9 +131,9 @@ if __name__=="__main__":
     turtlebot3_model = rospy.get_param("model", "burger")
 
     status = 0
-    target_linear_vel   = 0.0
-    target_angular_vel  = 0.0
-    control_linear_vel  = 0.0
+    target_linear_vel = 0.0
+    target_angular_vel = 0.0
+    control_linear_vel = 0.0
     control_angular_vel = 0.0
     twist = Twist()
 
@@ -158,31 +162,34 @@ if __name__=="__main__":
 
     dt = 0.01
 
-
     preError = 0
     derivative = 0
     desAngPos = 0
-    timep =0
+    timep = 0
+
+    isObstacle = False
+
     try:
         print(msg)
-        while(1):
+        while (1):
             sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
             sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
             sub3 = rospy.Subscriber("odom", Odometry, callback_update_position)
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
 
             newDistance = []
-            isObstacle = False
-            if(len(distance) == 360):
-                for i in range(0,360):
-                    if(distance[i] > 0.2 and distance[i] < 0.5 and( (i > 0 and i < 45) or (i > 315 and i < 360))):
+            # isObstacle = False
+            if (len(distance) == 360):
+                for i in range(0, 360):
+                    if (distance[i] > 0.2 and distance[i] < 0.5 and ((i > 0 and i < 45) or (i > 315 and i < 360))):
                         isObstacle = True
-                    if(distance[i] < 0.2 or distance[i] == "inf"):
+                    if (distance[i] < 0.2 or distance[i] == "inf"):
                         newDistance.append(999)
                     else:
                         newDistance.append(distance[i])
-            if(isObstacle):
-                if (left != 201.0 and right != 201.0 ):
+
+            if (isObstacle):
+                if (left != 201.0 and right != 201.0):
                     isObstacle = False
                 if (newDistance.index(min(newDistance)) > 180):
                     # turn left
@@ -196,7 +203,7 @@ if __name__=="__main__":
 
                 error = right - left
 
-                if(right < left):
+                if (right < left):
 
                     if left == 201.0:
                         error = -130
@@ -211,7 +218,7 @@ if __name__=="__main__":
                     preError = error
 
                     print("turn Right !!! W-_-W")
-                elif(left == 201.0 and  right == 201.0):
+                elif (left == 201.0 and right == 201.0):
 
                     if control_linear_vel >= 0:
                         target_linear_vel = target_linear_vel - 0.003
@@ -221,7 +228,7 @@ if __name__=="__main__":
                     target_angular_vel = 0.0
 
                     print("DaoChe")
-                elif(left < right):
+                elif (left < right):
 
                     if right == 201.0:
                         error = 130
@@ -245,21 +252,24 @@ if __name__=="__main__":
                     print("perfect !!!")
                     preError = error
 
-                key = getKey()
+            key = getKey()
 
-                if (key == '\x03'):
-                    break
-
+            if (key == '\x03'):
+                break
 
             twist = Twist()
 
             # control_linear_vel = makeSimpleProfile(control_linear_vel, target_linear_vel, (LIN_VEL_STEP_SIZE/2.0))
             control_linear_vel = target_linear_vel
-            twist.linear.x = control_linear_vel; twist.linear.y = 0.0; twist.linear.z = 0.0
+            twist.linear.x = control_linear_vel;
+            twist.linear.y = 0.0;
+            twist.linear.z = 0.0
 
             # control_angular_vel = makeSimpleProfile(control_angular_vel, target_angular_vel, (ANG_VEL_STEP_SIZE/2.0))
             control_angular_vel = target_angular_vel
-            twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
+            twist.angular.x = 0.0;
+            twist.angular.y = 0.0;
+            twist.angular.z = control_angular_vel
 
             pub.publish(twist)
             # time.sleep(dt)
@@ -271,8 +281,12 @@ if __name__=="__main__":
 
     finally:
         twist = Twist()
-        twist.linear.x = 0.0; twist.linear.y = 0.0; twist.linear.z = 0.0
-        twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = 0.0
+        twist.linear.x = 0.0;
+        twist.linear.y = 0.0;
+        twist.linear.z = 0.0
+        twist.angular.x = 0.0;
+        twist.angular.y = 0.0;
+        twist.angular.z = 0.0
         pub.publish(twist)
 
     if os.name != 'nt':
