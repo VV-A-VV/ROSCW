@@ -88,7 +88,10 @@ def callbackone(data):
     global right
     right = data.illuminance
 
-
+def biggerZero(data):
+    if data < 0:
+        return 0
+    return data
 
 def callbacktwo(data):
     global left
@@ -146,9 +149,17 @@ if __name__=="__main__":
     # time.sleep(0.1)
 
     Kp = 0.0013
-    Kd = 0.00006
-    Tp = 0.06
-    prevErr = 0
+    Kd = 0.0002
+    Ki = 0.0001
+
+    Kl = 0.0003
+
+    integral = 0
+
+    dt = 0.01
+
+
+    preError = 0
     derivative = 0
     desAngPos = 0
     timep =0
@@ -159,7 +170,7 @@ if __name__=="__main__":
             sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
             sub3 = rospy.Subscriber("odom", Odometry, callback_update_position)
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
-            target_linear_vel = Tp
+
             newDistance = []
             isObstacle = False
             if(len(distance) == 360):
@@ -182,54 +193,64 @@ if __name__=="__main__":
                     target_linear_vel = 0.1
             # print(newDistance)
             else:
-                if(right < left-20):
 
-                    target_linear_vel = 0.0
-                    # target_angular_vel = -0.2
-                    # print( target_angular_vel , phi)
-                    # print(pose_x, pose_y, yaw_deg)
+                error = right - left
+
+                if(right < left):
+
+                    if left == 201.0:
+                        error = -130
+
+                    target_linear_vel = biggerZero(130 + error) * Kl + 0.0005
+
+                    derivative = (error - preError) / dt
+                    integral = integral + error * dt
+
+                    target_angular_vel = error * Kp + Kd * derivative + Ki * integral
+
+                    preError = error
+
                     print("turn Right !!! W-_-W")
                 elif(left == 201.0 and  right == 201.0):
-                    target_linear_vel = -Tp
-                    # print(pose_x, pose_y, yaw_deg)
-                    print("DaoChe")
-                elif(left < right-20):
 
-                    target_linear_vel = 0.0
+                    if control_linear_vel >= 0:
+                        target_linear_vel = target_linear_vel - 0.003
+                    else:
+                        target_linear_vel = - 0.01
 
-                    # target_angular_vel = 0.2
-                    # print( target_angular_vel , phi)
-                    # print(pose_x, pose_y, yaw_deg)
-                    print("turn left !!! //A_A//")
-                # elif(left == right):
-                #     target_linear_vel = Tp
-                #     target_angular_vel = 0.0
-                #     # print(pose_x, pose_y, yaw_deg)
-                #
-                #     print("perfect !!!")
-                error = right - left
-                t = time.time()
-                dt = t- timep
-                derivative = (error - prevErr)/dt
-                timep = t
-                print (derivative)
-
-                target_angular_vel = Kp*error + Kd*derivative
-
-                print(target_angular_vel)
-                print(Kd*derivative)
-                print("-----------------------------------------------------------------")
-                # print(target_angular_vel,Kp*error, Kd*derivative)
-                prevErr = error
-                key = getKey()
-                if key == ' ' or key == 's':
-                    target_linear_vel = 0.0
-                    control_linear_vel = 0.0
                     target_angular_vel = 0.0
-                    control_angular_vel = 0.0
-                else:
-                    if (key == '\x03'):
-                        break
+
+                    print("DaoChe")
+                elif(left < right):
+
+                    if right == 201.0:
+                        error = 130
+
+                    target_linear_vel = biggerZero(130 - error) * Kl + 0.0005
+
+                    derivative = (error - preError) / dt
+                    integral = integral + error * dt
+
+                    target_angular_vel = error * Kp + Kd * derivative + Ki * integral
+
+                    preError = error
+
+                    print("turn left !!! //A_A//")
+                elif (left == right):
+
+                    target_linear_vel = 130 * Kl + 0.0005
+
+                    integral = 0
+
+                    print("perfect !!!")
+                    preError = error
+
+                key = getKey()
+
+                if (key == '\x03'):
+                    break
+
+
             twist = Twist()
 
             # control_linear_vel = makeSimpleProfile(control_linear_vel, target_linear_vel, (LIN_VEL_STEP_SIZE/2.0))
@@ -243,7 +264,7 @@ if __name__=="__main__":
             pub.publish(twist)
             # time.sleep(dt)
 
-            time.sleep(0.1)
+            time.sleep(dt)
 
     except:
         print(e)
