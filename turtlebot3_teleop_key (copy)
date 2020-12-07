@@ -142,7 +142,7 @@ if __name__=="__main__":
     angPosStep = 1e-3
     Kp = 0.0013
     Kd = 0.00006
-    Tp = 0.06
+    Tp = 0.05
     prevErr = 0
     derivative = 0
     desAngPos = 0
@@ -155,8 +155,9 @@ if __name__=="__main__":
             sub3 = rospy.Subscriber("odom", Odometry, callback_update_position)
             target_linear_vel = Tp
             if(right < left-20):
-
-                target_linear_vel = 0
+                target_linear_vel = -Tp
+                time.sleep(0.1)
+                target_linear_vel = 0.0
                 # target_angular_vel = -0.2
                 # print( target_angular_vel , phi)
                 # print(pose_x, pose_y, yaw_deg)
@@ -166,8 +167,9 @@ if __name__=="__main__":
                 # print(pose_x, pose_y, yaw_deg)
                 print("DaoChe")
             elif(left < right-20):
-
-                target_linear_vel = 0
+                target_linear_vel = -Tp
+                time.sleep(0.1)
+                target_linear_vel = 0.0
 
                 # target_angular_vel = 0.2
                 # print( target_angular_vel , phi)
