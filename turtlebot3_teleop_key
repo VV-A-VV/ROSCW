@@ -48,7 +48,6 @@ pose_x = 0
 pose_y = 0
 phi = 0
 READ_TIME = 0
-isObstacle = False
 msg = """
 Control Your TurtleBot3!
 ---------------------------
@@ -91,18 +90,6 @@ def callbackone(data):
 def callbacktwo(data):
     global left
     left = data.illuminance
-def callback_update_position(data):
-    global pose_x
-    global pose_y
-    global phi
-    pose_x = round(data.pose.pose.position.x, 4)
-    pose_y = round(data.pose.pose.position.y, 4)
-    quaternion = data.pose.pose.orientation
-    orientation_list = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
-    (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
-    phi = yaw
-    # yaw_deg = round(math.degrees(yaw), 4)
-    # print("WEIZHI:",pose_x,pose_y)
 
     # print("rest:", orientation_list, yaw_deg)
 def callLaser(data):
@@ -119,7 +106,6 @@ if __name__=="__main__":
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
     Kp = 5
     stepDegree = 360
-    turtlebot3_model = rospy.get_param("model", "burger")
 
     status = 0
     target_linear_vel   = 0.0
@@ -144,7 +130,7 @@ if __name__=="__main__":
     # time.sleep(0.1)
 
     Kp = 0.0013
-    Kd = 0.0006
+    Kd = 0.00006
     Tp = 0.06
     prevErr = 0
     derivative = 0
@@ -152,35 +138,34 @@ if __name__=="__main__":
     timep =0
     isObstacle = False
     try:
-        print(msg)
+       # print(msg)
         while(1):
             sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
             sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
-            sub3 = rospy.Subscriber("odom", Odometry, callback_update_position)
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
             target_linear_vel = Tp
-            rate = rospy.Rate(10)
             newDistance = []
             if(len(distance) == 360):
                 for i in range(0,360):
                     if(distance[i] > 0.2 and distance[i] < 0.5 and ((i > 0 and i < 45) or (i > 315 and i < 360))):
                         isObstacle = True
-                    if(distance[i] < 0.2 or distance[i] == "inf"):
+                    if(distance[i] < 0.2):
                         newDistance.append(999)
                     else:
                         newDistance.append(distance[i])
             if(isObstacle):
-                if (newDistance.index(min(newDistance)) < 180):
-                    print("==============================================")
-                    x = min(newDistance)
-                    y = newDistance.index(min(newDistance))
-                    print(y)
+                x = min(newDistance)
+                y = newDistance.index(x)
+                if (y< 180):
+                 #   print("==============================================")
+
+                  #  print(y)
                     if (y<80):
-                        print("less than 90")
+                      #  print("less than 90")
                         target_angular_vel = -0.05
                         target_linear_vel = 0
                     elif (y >100 ):
-                        print("larger than 90")
+                       # print("larger than 90")
                         target_angular_vel = 0.05
                         target_linear_vel = 0
 
@@ -192,10 +177,7 @@ if __name__=="__main__":
                           target_angular_vel = 0.05
                           target_linear_vel = 0.01
                 else:
-                    print("==============================================")
-                    x = min(newDistance)
-                    y = newDistance.index(min(newDistance))
-                    print(y)
+                  #  print("==============================================")
                     if (y < 260):
                         target_angular_vel = -0.05
                         target_linear_vel = 0
@@ -211,14 +193,12 @@ if __name__=="__main__":
                             target_angular_vel = -0.05
                             target_linear_vel = 0.01
 
-                print(left)
-                print(right)
+               # print(left)
+              #  print(right)
 
                 if (left != 201.0 and right != 201.0):
-                    print(left)
-                    print(right)
-                    left =0
-                    right =0
+                    #print(left)
+                    #print(right)
                     isObstacle = False
                # print(newDistance)
             else:
@@ -228,11 +208,11 @@ if __name__=="__main__":
                     # target_angular_vel = -0.2
                     # print( target_angular_vel , phi)
                     # print(pose_x, pose_y, yaw_deg)
-                    print("turn Right !!! W-_-W")
+                   # print("turn Right !!! W-_-W")
                 elif(left == 201.0 and  right == 201.0):
                     target_linear_vel = -Tp
                     # print(pose_x, pose_y, yaw_deg)
-                    print("DaoChe")
+                  #  print("DaoChe")
                 elif(left < right-20):
 
                     target_linear_vel = 0.0
@@ -240,7 +220,7 @@ if __name__=="__main__":
                     # target_angular_vel = 0.2
                     # print( target_angular_vel , phi)
                     # print(pose_x, pose_y, yaw_deg)
-                    print("turn left !!! //A_A//")
+                    #print("turn left !!! //A_A//")
                 # elif(left == right):
                 #     target_linear_vel = Tp
                 #     target_angular_vel = 0.0
@@ -249,18 +229,18 @@ if __name__=="__main__":
                 #     print("perfect !!!")
                 error = right - left
 
-                dt = 0.01
+                dt = 0.15
                 derivative = error - prevErr
 
-                print (derivative)
+                #print (derivative)
 
                 target_angular_vel = Kp*error + Kd*derivative
 
-                print(target_angular_vel)
-                print(Kd*derivative)
-                print(left)
-                print(right)
-                print("-----------------------------------------------------------------")
+                # print(target_angular_vel)
+                # print(Kd*derivative)
+                # print(left)
+                # print(right)
+                # print("-----------------------------------------------------------------")
                 # print(target_angular_vel,Kp*error, Kd*derivative)
                 prevErr = error
                 key = getKey()
@@ -283,7 +263,7 @@ if __name__=="__main__":
             twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
 
             pub.publish(twist)
-
+            rospy.sleep(0.14)
 
 
 
