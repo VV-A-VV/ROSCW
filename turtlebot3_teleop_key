@@ -152,29 +152,21 @@ if __name__ == "__main__":
     pub.publish(twist)
     # time.sleep(0.1)
 
-    Kp = 0.0013
-    Kd = 0.0002
-    Ki = 0.0001
+    Kp = 0.00128
+    Kd = 0.000269
+    Ki = 0.00000
 
-    Kp_R = 0.00012
-    Kd_R = 0.00002
-    Ki_R = 0.00000
-
-    Kl = 0.0003
+    Kl = 0.00035
 
     integral = 0
 
-    dt = 0.01
+    dt = 0.05
 
     preError = 0
     derivative = 0
     desAngPos = 0
 
-    error_Rote = 0
-    preError_Rote = 0
-
     isObstacle = False
-    start = False
 
     try:
         print(msg)
@@ -184,96 +176,71 @@ if __name__ == "__main__":
             sub3 = rospy.Subscriber("odom", Odometry, callback_update_position)
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
 
-            newDistance = []
-            # isObstacle = False
             if (len(distance) == 360):
-                for i in range(0, 360):
-                    if (distance[i] > 0.2 and distance[i] < 0.5 and ((i > 0 and i < 45) or (i > 315 and i < 360))):
-                        isObstacle = True
-                    if (distance[i] < 0.2 or distance[i] == "inf"):
-                        newDistance.append(999)
-                    else:
-                        newDistance.append(distance[i])
+                minx = min(distance)
+                miny = distance.index(minx)
+                if (minx > 0.2 and minx < 0.5 and ((miny > 0 and miny < 45) or (miny > 315 and miny < 360))):
+                    isObstacle = True
 
             if (isObstacle):
-                if (left != 201.0 and right != 201.0 and start):
-                    isObstacle = False
-                    start = False
-                    twist = Twist()
-                    twist.linear.x = 0.0;
-                    twist.linear.y = 0.0;
-                    twist.linear.z = 0.0
 
-                    twist.angular.x = 0.0;
-                    twist.angular.y = 0.0;
-                    twist.angular.z = 0.0;
-                    pub.publish(twist)
-                    rospy.sleep(10)
+                x = min(distance)
+                y = distance.index(x)
 
-                if(left == 201 and right == 201):
-                    start = True
-
-
-
-                x = min(newDistance)
-                y = newDistance.index(min(newDistance))
-
-                if (y  < 180):
-                    print("==============================================")
-                    print(y)
-                    if (y < 80):
-                        print("less than 90")
-                        target_angular_vel = -0.05
+                print(x)
+                if (y < 180):
+                    #   print("==============================================")
+                    #  print(y)
+                    if (y < 100):
+                        #  print("less than 90")
+                        target_angular_vel = 0.1
                         target_linear_vel = 0
-                    elif (y > 100):
-                        print("larger than 90")
-                        target_angular_vel = 0.05
+                    elif (y > 120):
+                        # print("larger than 90")
+                        target_angular_vel = -0.1
                         target_linear_vel = 0
 
                     else:
-                        if (x > 1):
-                            target_angular_vel = -0.05
-                            target_linear_vel = 0.01
-                        if (x < 1):
-                            target_angular_vel = 0.05
-                            target_linear_vel = 0.01
+                        if (x > 0.3):
+                            target_angular_vel = 0.2
+                            target_linear_vel = 0.02
+                        if (x < 0.3):
+                            target_angular_vel = -0.1
+                            target_linear_vel = 0.02
                 else:
-                    print("==============================================")
-                    print(y)
-                    if (y < 260):
-                        target_angular_vel = -0.05
+                    #  print("==============================================")
+                    if (y < 280):
+                        target_angular_vel = -0.1
                         target_linear_vel = 0
-                    elif (y > 280):
-                        target_angular_vel = 0.05
+                    elif (y > 300):
+                        target_angular_vel = 0.1
                         target_linear_vel = 0
                     else:
 
-                        if (x > 1):
-                            target_angular_vel = 0.05
-                            target_linear_vel = 0.01
-                        if (x < 1):
-                            target_angular_vel = -0.05
-                            target_linear_vel = 0.01
+                        if (x > 0.3):
+                            target_angular_vel = -0.2
+                            target_linear_vel = 0.02
+                        if (x < 0.3):
+                            target_angular_vel = 0.1
+                            target_linear_vel = 0.02
 
-                print(right);
-                print(left);
+                # print(left)
+                #  print(right)
 
-                rospy.sleep(0.14)
-                print(time.time())
-            # print(newDistance)
+                if (left != 201.0 and right != 201.0):
+                    # print(left)
+                    # print(right)
+                    isObstacle = False
             else:
-
-                print(right);
-                print(left);
 
                 error = right - left
 
                 if (right < left):
 
                     if left == 201.0:
-                        error = -130
+                        error = -98
 
-                    target_linear_vel = biggerZero(130 + error) * Kl + 0.0002
+                    target_linear_vel = biggerZero(130 + error) * Kl + 0.012
 
                     derivative = (error - preError) / dt
                     integral = integral + error * dt
@@ -285,10 +252,11 @@ if __name__ == "__main__":
                     print("turn Right !!! W-_-W")
                 elif (left == 201.0 and right == 201.0):
 
-                    if control_linear_vel >= 0:
-                        target_linear_vel = target_linear_vel - 0.003
+                    try_linear_vel = target_linear_vel - 0.003
+                    if try_linear_vel < - 0.02:
+                        target_linear_vel = -0.02
                     else:
-                        target_linear_vel = - 0.003
+                        target_linear_vel = try_linear_vel
 
                     target_angular_vel = 0.0
 
@@ -299,9 +267,9 @@ if __name__ == "__main__":
                 elif (left < right):
 
                     if right == 201.0:
-                        error = 130
+                        error = 98
 
-                    target_linear_vel = biggerZero(130 - error) * Kl + 0.0002
+                    target_linear_vel = biggerZero(130 - error) * Kl + 0.012
 
                     derivative = (error - preError) / dt
                     integral = integral + error * dt
@@ -313,7 +281,7 @@ if __name__ == "__main__":
                     print("turn left !!! //A_A//")
                 elif (left == right):
 
-                    target_linear_vel = 130 * Kl + 0.0002
+                    target_linear_vel = 130 * Kl + 0.02
 
                     integral = 0
 
@@ -328,22 +296,18 @@ if __name__ == "__main__":
             twist = Twist()
 
             # control_linear_vel = makeSimpleProfile(control_linear_vel, target_linear_vel, (LIN_VEL_STEP_SIZE/2.0))
-            control_linear_vel = target_linear_vel
-            twist.linear.x = control_linear_vel;
+            twist.linear.x = target_linear_vel;
             twist.linear.y = 0.0;
             twist.linear.z = 0.0
 
             # control_angular_vel = makeSimpleProfile(control_angular_vel, target_angular_vel, (ANG_VEL_STEP_SIZE/2.0))
-            control_angular_vel = target_angular_vel
             twist.angular.x = 0.0;
             twist.angular.y = 0.0;
-            twist.angular.z = control_angular_vel
+            twist.angular.z = target_angular_vel
 
             pub.publish(twist)
-            # time.sleep(dt)
 
-            # time.sleep(dt)
-            rospy.sleep(dt)
+            time.sleep(dt)
 
 
     except:
