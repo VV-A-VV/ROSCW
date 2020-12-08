@@ -29,8 +29,6 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-from nav_msgs.msg import Odometry
-from tf.transformations import euler_from_quaternion
 from sensor_msgs.msg import Illuminance
 from sensor_msgs.msg import LaserScan
 import sys, select, os
@@ -44,42 +42,9 @@ else:
 
 left =0
 right =0
-pose_x = 0
-pose_y = 0
-phi = 0
-READ_TIME = 0
-msg = """
-Control Your TurtleBot3!
----------------------------
-Moving around:
-        w
-   a    s    d
-        x
-w/x : increase/decrease linear velocity (Burger : ~ 0.22, Waffle and Waffle Pi : ~ 0.26)
-a/d : increase/decrease angular velocity (Burger : ~ 2.84, Waffle and Waffle Pi : ~ 1.82)
-space key, s : force stop
-CTRL-C to quit
-"""
-
 e = """
 Communications Failed
 """
-
-def getKey():
-    if os.name == 'nt':
-      return msvcrt.getch()
-
-    tty.setraw(sys.stdin.fileno())
-    rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
-    if rlist:
-        key = sys.stdin.read(1)
-    else:
-        key = ''
-
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
-    return key
-
-
 
 def callbackone(data):
     global right
@@ -126,7 +91,6 @@ if __name__=="__main__":
     twist.angular.y = 0.0;
     twist.angular.z = control_angular_vel
     distance = []
-    rate = rospy.Rate(15)
     pub.publish(twist)
     # time.sleep(0.1)
 
@@ -145,54 +109,54 @@ if __name__=="__main__":
             sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
             target_linear_vel = Tp
-            newDistance = []
             if(len(distance) == 360):
-                for i in range(0,360):
-                    if(distance[i] > 0.2 and distance[i] < 0.5 and ((i > 0 and i < 45) or (i > 315 and i < 360))):
-                        isObstacle = True
-                    if(distance[i] < 0.2):
-                        newDistance.append(999)
-                    else:
-                        newDistance.append(distance[i])
+                minx = min(distance)
+                miny = distance.index(minx)
+                if(minx > 0.2 and minx < 0.5 and ((miny > 0 and miny < 45) or (miny > 315 and miny < 360))):
+
+                   isObstacle = True
+
             if(isObstacle):
-                x = min(newDistance)
-                y = newDistance.index(x)
+
+                x = min(distance)
+                y = distance.index(x)
+
+                print(x)
                 if (y< 180):
                  #   print("==============================================")
-
                   #  print(y)
-                    if (y<80):
+                    if (y<100):
                       #  print("less than 90")
-                        target_angular_vel = -0.1
-                        target_linear_vel = 0
-                    elif (y >100 ):
-                       # print("larger than 90")
                         target_angular_vel = 0.1
+                        target_linear_vel = 0
+                    elif (y >120 ):
+                       # print("larger than 90")
+                        target_angular_vel = -0.1
                         target_linear_vel = 0
 
                     else :
                         if(x > 0.3):
-                          target_angular_vel = 0.1
-                          target_linear_vel = 0.05
+                          target_angular_vel = 0.2
+                          target_linear_vel = 0.02
                         if(x < 0.3):
                           target_angular_vel = -0.1
-                          target_linear_vel = 0.05
+                          target_linear_vel = 0.02
                 else:
                   #  print("==============================================")
-                    if (y < 260):
+                    if (y < 280):
                         target_angular_vel = -0.1
                         target_linear_vel = 0
-                    elif(y > 280):
+                    elif(y > 300):
                         target_angular_vel = 0.1
                         target_linear_vel = 0
                     else:
 
                         if (x > 0.3):
-                            target_angular_vel = -0.1
-                            target_linear_vel = 0.05
+                            target_angular_vel = -0.2
+                            target_linear_vel = 0.02
                         if (x < 0.3):
                             target_angular_vel = 0.1
-                            target_linear_vel = 0.05
+                            target_linear_vel = 0.02
 
                # print(left)
               #  print(right)
@@ -230,7 +194,7 @@ if __name__=="__main__":
                 #     print("perfect !!!")
                 error = right - left
 
-                dt = 0.15
+                dt = 0.21
                 derivative = error - prevErr
 
                 #print (derivative)
@@ -244,27 +208,15 @@ if __name__=="__main__":
                 # print("-----------------------------------------------------------------")
                 # print(target_angular_vel,Kp*error, Kd*derivative)
                 prevErr = error
-                key = getKey()
-                if key == ' ' or key == 's':
-                    target_linear_vel = 0.0
-                    control_linear_vel = 0.0
-                    target_angular_vel = 0.0
-                    control_angular_vel = 0.0
-                else:
-                    if (key == '\x03'):
-                        break
             twist = Twist()
+            target_linear_vel
+            twist.linear.x = target_linear_vel; twist.linear.y = 0.0; twist.linear.z = 0.0
 
-            # control_linear_vel = makeSimpleProfile(control_linear_vel, target_linear_vel, (LIN_VEL_STEP_SIZE/2.0))
-            control_linear_vel = target_linear_vel
-            twist.linear.x = control_linear_vel; twist.linear.y = 0.0; twist.linear.z = 0.0
-
-            # control_angular_vel = makeSimpleProfile(control_angular_vel, target_angular_vel, (ANG_VEL_STEP_SIZE/2.0))
-            control_angular_vel = target_angular_vel
-            twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
+            target_angular_vel
+            twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = target_angular_vel
 
             pub.publish(twist)
-            rate.sleep()
+            rospy.sleep(0.2)
 
 
 
