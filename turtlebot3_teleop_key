@@ -126,6 +126,7 @@ if __name__=="__main__":
     twist.angular.y = 0.0;
     twist.angular.z = control_angular_vel
     distance = []
+    rate = rospy.Rate(15)
     pub.publish(twist)
     # time.sleep(0.1)
 
@@ -162,36 +163,36 @@ if __name__=="__main__":
                   #  print(y)
                     if (y<80):
                       #  print("less than 90")
-                        target_angular_vel = -0.05
+                        target_angular_vel = -0.1
                         target_linear_vel = 0
                     elif (y >100 ):
                        # print("larger than 90")
-                        target_angular_vel = 0.05
+                        target_angular_vel = 0.1
                         target_linear_vel = 0
 
                     else :
-                        if(x > 1):
-                          target_angular_vel = -0.05
-                          target_linear_vel = 0.01
-                        if(x < 1):
-                          target_angular_vel = 0.05
-                          target_linear_vel = 0.01
+                        if(x > 0.3):
+                          target_angular_vel = 0.1
+                          target_linear_vel = 0.05
+                        if(x < 0.3):
+                          target_angular_vel = -0.1
+                          target_linear_vel = 0.05
                 else:
                   #  print("==============================================")
                     if (y < 260):
-                        target_angular_vel = -0.05
+                        target_angular_vel = -0.1
                         target_linear_vel = 0
                     elif(y > 280):
-                        target_angular_vel = 0.05
+                        target_angular_vel = 0.1
                         target_linear_vel = 0
                     else:
 
-                        if (x > 1):
-                            target_angular_vel = 0.05
-                            target_linear_vel = 0.01
-                        if (x < 1):
-                            target_angular_vel = -0.05
-                            target_linear_vel = 0.01
+                        if (x > 0.3):
+                            target_angular_vel = -0.1
+                            target_linear_vel = 0.05
+                        if (x < 0.3):
+                            target_angular_vel = 0.1
+                            target_linear_vel = 0.05
 
                # print(left)
               #  print(right)
@@ -229,7 +230,7 @@ if __name__=="__main__":
                 #     print("perfect !!!")
                 error = right - left
 
-                dt = 0.31
+                dt = 0.15
                 derivative = error - prevErr
 
                 #print (derivative)
@@ -263,7 +264,7 @@ if __name__=="__main__":
             twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
 
             pub.publish(twist)
-            rospy.sleep(0.2)
+            rate.sleep()
 
 
 
