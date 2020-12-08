@@ -229,7 +229,7 @@ if __name__=="__main__":
                 #     print("perfect !!!")
                 error = right - left
 
-                dt = 0.15
+                dt = 0.31
                 derivative = error - prevErr
 
                 #print (derivative)
@@ -263,7 +263,7 @@ if __name__=="__main__":
             twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
 
             pub.publish(twist)
-            rospy.sleep(0.14)
+            rospy.sleep(0.2)
 
 
 
