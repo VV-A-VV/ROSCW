@@ -28,8 +28,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import rospy
-import time
-import math
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
@@ -146,12 +144,13 @@ if __name__=="__main__":
     # time.sleep(0.1)
 
     Kp = 0.0013
-    Kd = 0.00006
+    Kd = 0.0006
     Tp = 0.06
     prevErr = 0
     derivative = 0
     desAngPos = 0
     timep =0
+    isObstacle = False
     try:
         print(msg)
         while(1):
@@ -160,27 +159,68 @@ if __name__=="__main__":
             sub3 = rospy.Subscriber("odom", Odometry, callback_update_position)
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
             target_linear_vel = Tp
+            rate = rospy.Rate(10)
             newDistance = []
-            isObstacle = False
             if(len(distance) == 360):
                 for i in range(0,360):
-                    if(distance[i] > 0.2 and distance[i] < 0.5 and( (i > 0 and i < 45) or (i > 315 and i < 360))):
+                    if(distance[i] > 0.2 and distance[i] < 0.5 and ((i > 0 and i < 45) or (i > 315 and i < 360))):
                         isObstacle = True
                     if(distance[i] < 0.2 or distance[i] == "inf"):
                         newDistance.append(999)
                     else:
                         newDistance.append(distance[i])
             if(isObstacle):
-                if (left != 201.0 and right != 201.0 ):
-                    isObstacle = False
-                if (newDistance.index(min(newDistance)) > 180):
-                    # turn left
-                    target_angular_vel = 0.2
-                    target_linear_vel = 0.1
+                if (newDistance.index(min(newDistance)) < 180):
+                    print("==============================================")
+                    x = min(newDistance)
+                    y = newDistance.index(min(newDistance))
+                    print(y)
+                    if (y<80):
+                        print("less than 90")
+                        target_angular_vel = -0.05
+                        target_linear_vel = 0
+                    elif (y >100 ):
+                        print("larger than 90")
+                        target_angular_vel = 0.05
+                        target_linear_vel = 0
+
+                    else :
+                        if(x > 1):
+                          target_angular_vel = -0.05
+                          target_linear_vel = 0.01
+                        if(x < 1):
+                          target_angular_vel = 0.05
+                          target_linear_vel = 0.01
                 else:
-                    target_angular_vel = -0.2
-                    target_linear_vel = 0.1
-            # print(newDistance)
+                    print("==============================================")
+                    x = min(newDistance)
+                    y = newDistance.index(min(newDistance))
+                    print(y)
+                    if (y < 260):
+                        target_angular_vel = -0.05
+                        target_linear_vel = 0
+                    elif(y > 280):
+                        target_angular_vel = 0.05
+                        target_linear_vel = 0
+                    else:
+
+                        if (x > 1):
+                            target_angular_vel = 0.05
+                            target_linear_vel = 0.01
+                        if (x < 1):
+                            target_angular_vel = -0.05
+                            target_linear_vel = 0.01
+
+                print(left)
+                print(right)
+
+                if (left != 201.0 and right != 201.0):
+                    print(left)
+                    print(right)
+                    left =0
+                    right =0
+                    isObstacle = False
+               # print(newDistance)
             else:
                 if(right < left-20):
 
@@ -208,16 +248,18 @@ if __name__=="__main__":
                 #
                 #     print("perfect !!!")
                 error = right - left
-                t = time.time()
-                dt = t- timep
-                derivative = (error - prevErr)/dt
-                timep = t
+
+                dt = 0.01
+                derivative = error - prevErr
+
                 print (derivative)
 
                 target_angular_vel = Kp*error + Kd*derivative
 
                 print(target_angular_vel)
                 print(Kd*derivative)
+                print(left)
+                print(right)
                 print("-----------------------------------------------------------------")
                 # print(target_angular_vel,Kp*error, Kd*derivative)
                 prevErr = error
@@ -241,9 +283,9 @@ if __name__=="__main__":
             twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
 
             pub.publish(twist)
-            # time.sleep(dt)
 
-            time.sleep(0.1)
+
+
 
     except:
         print(e)
