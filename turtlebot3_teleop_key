@@ -122,13 +122,31 @@ if __name__=="__main__":
                 y = distance.index(x)
 
                 print(x)
-                if (y> 180):
-
-                  #  print("==============================================")
-                    if (y < 260):
+                if (y< 180):
+                 #   print("==============================================")
+                  #  print(y)
+                    if (y<100):
+                      #  print("less than 90")
+                        target_angular_vel = 0.2
+                        target_linear_vel = 0
+                    elif (y >120 ):
+                       # print("larger than 90")
                         target_angular_vel = -0.2
                         target_linear_vel = 0
-                    elif(y > 280):
+
+                    else :
+                        if(x > 0.3):
+                          target_angular_vel = 0.3
+                          target_linear_vel = 0.05
+                        if(x < 0.25):
+                          target_angular_vel = -0.2
+                          target_linear_vel = 0.05
+                else:
+                  #  print("==============================================")
+                    if (y < 270):
+                        target_angular_vel = -0.2
+                        target_linear_vel = 0
+                    elif(y > 300):
                         target_angular_vel = 0.2
                         target_linear_vel = 0
                     else:
@@ -137,7 +155,7 @@ if __name__=="__main__":
                             target_angular_vel = -0.3
                             target_linear_vel = 0.05
                         if (x < 0.25):
-                            target_angular_vel = 0.1
+                            target_angular_vel = 0.2
                             target_linear_vel = 0.05
 
                # print(left)
