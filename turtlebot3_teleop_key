@@ -112,7 +112,7 @@ if __name__=="__main__":
             if(len(distance) == 360):
                 minx = min(distance)
                 miny = distance.index(minx)
-                if(minx > 0.2 and minx < 0.5 and ((miny > 0 and miny < 45) or (miny > 315 and miny < 360))):
+                if(minx > 0.2 and minx < 0.4 and ((miny > 0 and miny < 45) or (miny > 315 and miny < 360))):
 
                    isObstacle = True
 
@@ -122,46 +122,53 @@ if __name__=="__main__":
                 y = distance.index(x)
 
                 print(x)
-                if (y< 180):
-                 #   print("==============================================")
-                  #  print(y)
-                    if (y<100):
-                      #  print("less than 90")
-                        target_angular_vel = 0.1
-                        target_linear_vel = 0
-                    elif (y >120 ):
-                       # print("larger than 90")
-                        target_angular_vel = -0.1
-                        target_linear_vel = 0
+                if (y> 180):
 
-                    else :
-                        if(x > 0.3):
-                          target_angular_vel = 0.2
-                          target_linear_vel = 0.02
-                        if(x < 0.3):
-                          target_angular_vel = -0.1
-                          target_linear_vel = 0.02
-                else:
                   #  print("==============================================")
-                    if (y < 280):
-                        target_angular_vel = -0.1
+                    if (y < 260):
+                        target_angular_vel = -0.2
                         target_linear_vel = 0
-                    elif(y > 300):
-                        target_angular_vel = 0.1
+                    elif(y > 280):
+                        target_angular_vel = 0.2
                         target_linear_vel = 0
                     else:
 
                         if (x > 0.3):
-                            target_angular_vel = -0.2
-                            target_linear_vel = 0.02
-                        if (x < 0.3):
+                            target_angular_vel = -0.3
+                            target_linear_vel = 0.05
+                        if (x < 0.25):
                             target_angular_vel = 0.1
-                            target_linear_vel = 0.02
+                            target_linear_vel = 0.05
 
                # print(left)
               #  print(right)
 
                 if (left != 201.0 and right != 201.0):
+                    # if(50<y<130 and x<0.4):
+                    #     target_angular_vel = -2
+                    #     print("aaa")
+                    #     twist = Twist()
+                    #     twist.linear.x = 0.1;
+                    #     twist.linear.y = 0.0;
+                    #     twist.linear.z = 0.0
+                    #     twist.angular.x = 0.0;
+                    #     twist.angular.y = 0.0;
+                    #     twist.angular.z = target_angular_vel
+                    #     pub.publish(twist)
+                    #     rospy.sleep(0.5)
+                    # elif (230 < y < 310 and x < 0.4):
+                    #     target_angular_vel = 2
+                    #     print("bbb")
+                    #     twist = Twist()
+                    #     twist.linear.x = 0.1;
+                    #     twist.linear.y = 0.0;
+                    #     twist.linear.z = 0.0
+                    #     twist.angular.x = 0.0;
+                    #     twist.angular.y = 0.0;
+                    #     twist.angular.z = target_angular_vel
+                    #     pub.publish(twist)
+                    #     rospy.sleep(0.5)
+
                     #print(left)
                     #print(right)
                     isObstacle = False
@@ -209,10 +216,7 @@ if __name__=="__main__":
                 # print(target_angular_vel,Kp*error, Kd*derivative)
                 prevErr = error
             twist = Twist()
-            target_linear_vel
             twist.linear.x = target_linear_vel; twist.linear.y = 0.0; twist.linear.z = 0.0
-
-            target_angular_vel
             twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = target_angular_vel
 
             pub.publish(twist)
