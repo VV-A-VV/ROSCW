@@ -63,9 +63,9 @@ if __name__ == "__main__":
             sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
 
-            # Give a initial linear velocity
+            # Give a initial linear velocity and angular velocity
             target_linear_vel = Tp
-
+            target_angular_vel = 0
             # Whether meet obstacle
             if len(distance) == 360:
                 minx = min(distance)
@@ -152,7 +152,7 @@ if __name__ == "__main__":
                 elif left < right - 20:
 
                     target_linear_vel = 0.015
-
+                # use PD control to make sure the waffle-pi move smoothly and stably
                 error = right - left
 
                 dt = 0.2
@@ -161,6 +161,7 @@ if __name__ == "__main__":
                 target_angular_vel = Kp * error + Kd * derivative
 
                 prevErr = error
+            # publish the angular velocity and linear velocity of the waffle-pi
             twist = Twist()
             twist.linear.x = target_linear_vel;
             twist.linear.y = 0.0;
