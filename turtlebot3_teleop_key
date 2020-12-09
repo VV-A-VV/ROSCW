@@ -69,7 +69,6 @@ if __name__=="__main__":
 
     rospy.init_node('topic_subscriber')
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
-    Kp = 5
     stepDegree = 360
 
     status = 0
@@ -136,14 +135,14 @@ if __name__=="__main__":
 
                     else :
                         if(x > 0.3):
-                          target_angular_vel = 0.3
+                          target_angular_vel = x
                           target_linear_vel = 0.05
                         if(x < 0.25):
-                          target_angular_vel = -0.2
+                          target_angular_vel = -x
                           target_linear_vel = 0.05
                 else:
                   #  print("==============================================")
-                    if (y < 270):
+                    if (y < 280):
                         target_angular_vel = -0.2
                         target_linear_vel = 0
                     elif(y > 300):
@@ -152,10 +151,10 @@ if __name__=="__main__":
                     else:
 
                         if (x > 0.3):
-                            target_angular_vel = -0.3
+                            target_angular_vel = -x
                             target_linear_vel = 0.05
                         if (x < 0.25):
-                            target_angular_vel = 0.2
+                            target_angular_vel = x
                             target_linear_vel = 0.05
 
                # print(left)
@@ -219,7 +218,7 @@ if __name__=="__main__":
                 #     print("perfect !!!")
                 error = right - left
 
-                dt = 0.21
+                dt = 0.2
                 derivative = error - prevErr
 
                 #print (derivative)
@@ -238,7 +237,7 @@ if __name__=="__main__":
             twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = target_angular_vel
 
             pub.publish(twist)
-            rospy.sleep(0.2)
+            rospy.sleep(0.14)
 
 
 
