@@ -142,19 +142,34 @@ if __name__=="__main__":
                           target_linear_vel = 0.05
                 else:
                   #  print("==============================================")
-                    Error = y - 280
-                    target_angular_vel = Error * 0.01
 
-                    if (y < 280):
-                        target_linear_vel = 0
-                    elif(y > 300):
-                        target_linear_vel = 0
-                    else:
+                    if(left == 201.0 and right == 201.0):
+                        Error = y - 280
+                        target_angular_vel = Error * 0.01
+                        if (y < 280):
+                            target_linear_vel = 0
+                        elif(y > 300):
+                            target_linear_vel = 0
+                        else:
 
-                        if (x > 0.3):
-                            target_linear_vel = 0.05
-                        if (x < 0.25):
-                            target_linear_vel = 0.05
+                            if (x > 0.3):
+                                target_linear_vel = 0.05
+                            if (x < 0.25):
+                                target_linear_vel = 0.05
+                    elif(left == 201.0 or right == 201.0):
+                        Error = y - 240
+                        target_angular_vel = Error * 0.01
+                        if (y < 240):
+                            target_linear_vel = 0
+                        elif (y > 260):
+                            target_linear_vel = 0
+                        else:
+
+                            if (x > 0.3):
+                                target_linear_vel = 0.01
+                            if (x < 0.25):
+                                target_linear_vel = 0.01
+
 
                # print(left)
               #  print(right)
