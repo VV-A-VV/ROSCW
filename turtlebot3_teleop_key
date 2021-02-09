@@ -1,213 +1,96 @@
 #!/usr/bin/env python
 
 # Copyright (c) 2020, Yanbo Wang,Haolun Shan,Zechuan Duan KCL.
-
+import time
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Illuminance
 from sensor_msgs.msg import LaserScan
 import sys, select, os
+
 if os.name == 'nt':
-  import msvcrt
+    import msvcrt
 else:
-  import tty, termios
+    import tty, termios
 
-
-left =0
-right =0
+preTime = 0
+left = 0  # Left  Light Senor value
+right = 0  # Right Light Senor value
 e = """
 Communications Failed
 """
 
+
+# Get Right Light Sensor value
 def callbackone(data):
     global right
     right = data.illuminance
 
 
-
+# Get Right Light Sensor value
 def callbacktwo(data):
     global left
     left = data.illuminance
 
-    # print("rest:", orientation_list, yaw_deg)
+
+# Get Laser Scan value
 def callLaser(data):
     global distance
     distance = data.ranges
-    # print(len(data.ranges))
 
 
-if __name__=="__main__":
+# Main function, include line follow and avoid obstacle
+if __name__ == "__main__":
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
 
     rospy.init_node('topic_subscriber')
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
-    stepDegree = 360
-
-    status = 0
-    target_linear_vel   = 0.0
-    target_angular_vel  = 0.0
-    control_linear_vel  = 0.0
-    control_angular_vel = 0.0
-    twist = Twist()
-
-    # control_linear_vel = makeSimpleProfile(control_linear_vel, target_linear_vel, (LIN_VEL_STEP_SIZE/2.0))
-    control_linear_vel = 0.0
-    twist.linear.x = control_linear_vel;
-    twist.linear.y = 0.0;
-    twist.linear.z = 0.0
-
-    # control_angular_vel = makeSimpleProfile(control_angular_vel, target_angular_vel, (ANG_VEL_STEP_SIZE/2.0))
-    control_angular_vel = 0.0
-    twist.angular.x = 0.0;
-    twist.angular.y = 0.0;
-    twist.angular.z = control_angular_vel
     distance = []
-    pub.publish(twist)
-    # time.sleep(0.1)
 
-    Kp = 0.002
-    Kd = 0.00009
-    Tp = 0.07
-    prevErr = 0
-    derivative = 0
-    desAngPos = 0
-    timep =0
-    isObstacle = False
-    start = False
+    Kp = 0.002  # Kp of Line Follow
+    Kd = 0.00009  # Kd of Line Follow
+    Tp = 0.07  # Initial line velocity
+    prevErr = 0  # Previous Error
+    pretime = 0
+    isObstacle = False  # Whether start avoiding obstacle
+    start = False  # Whether leave line and avoid obstacle
+
     try:
-       # print(msg)
+        # Main loop
         while(1):
+            # Subscribe sensors
             sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
             sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
+
+            # Give a initial linear velocity and angular velocity
             target_linear_vel = Tp
-            if(len(distance) == 360):
-                minx = min(distance)
-                miny = distance.index(minx)
-                if(minx > 0.2 and minx < 0.3 and ((miny > 0 and miny < 45) or (miny > 315 and miny < 360))):
 
-                   isObstacle = True
+            tcount = time.time()
+            #print(tcount)
+            #
+            dif = tcount - pretime
 
-            if(isObstacle):
+            if (dif > 4):
+                pretime = tcount
+                target_linear_vel = 0
+            # Whether meet obstacle
+            print("tcount:", tcount,"dif:",dif,"pretime:",pretime)
 
-                x = min(distance)
-                y = distance.index(x)
-
-                print(x)
-                if(start):
-                    if (y< 180):
-                        if (y<100):
-                          #  print("less than 90")
-                            target_angular_vel = 0.2
-                            target_linear_vel = 0
-                        elif (y >120 ):
-                           # print("larger than 90")
-                            target_angular_vel = -0.2
-                            target_linear_vel = 0
-
-                        else :
-                            if(x > 0.3):
-                              target_angular_vel = x
-                              target_linear_vel = 0.05
-                            if(x < 0.25):
-                              target_angular_vel = -x
-                              target_linear_vel = 0.05
-                    else:
-                      #  print("==============================================")
-
-                        if(left == 201.0 and right == 201.0):
-                            Error = y - 280
-                            target_angular_vel = Error * 0.01
-                            if (y < 280):
-                                target_linear_vel = 0
-                            elif(y > 300):
-                                target_linear_vel = 0
-                            else:
-
-                                if (x > 0.3):
-                                    target_linear_vel = 0.05
-                                if (x < 0.25):
-                                    target_linear_vel = 0.05
-                        elif(left == 201.0 or right == 201.0):
-                            Error = y - 240
-                            target_angular_vel = Error * 0.001
-                            if (y < 250):
-                                target_linear_vel = 0
-                            elif (y > 270):
-                                target_linear_vel = 0
-                            else:
-
-                                if (x > 0.3):
-                                    target_linear_vel = 0.01
-                                if (x < 0.25):
-                                    target_linear_vel = 0.01
-                else:
-                    if left == 201 and right == 201:
-                        target_linear_vel = 0.1
-                        target_angular_vel = 0
-                        start = True
-                    else:
-                        target_linear_vel = 0
-                        target_angular_vel = 0.12
-
-                if ((left != 201.0 or right != 201.0) and start):
-                    target_linear_vel = 0.1
-                    if left < right:
-                        target_angular_vel = 0.15
-                    if left != 201.0 and right != 201.0:
-                        # target_linear_vel = 0.2
-                        isObstacle = False
-                        start = False
-
-            else:
-                if(right < left-20):
-
-                    target_linear_vel = 0.015
-                    # target_angular_vel = -0.2
-                    # print( target_angular_vel , phi)
-                    # print(pose_x, pose_y, yaw_deg)
-                   # print("turn Right !!! W-_-W")
-                elif(left == 201.0 and  right == 201.0):
-                    target_linear_vel = -Tp
-                    # print(pose_x, pose_y, yaw_deg)
-                  #  print("DaoChe")
-                elif(left < right-20):
-
-                    target_linear_vel = 0.015
-
-                    # target_angular_vel = 0.2
-                    # print( target_angular_vel , phi)
-                    # print(pose_x, pose_y, yaw_deg)
-                    #print("turn left !!! //A_A//")
-                # elif(left == right):
-                #     target_linear_vel = Tp
-                #     target_angular_vel = 0.0
-                #     # print(pose_x, pose_y, yaw_deg)
-                #
-                #     print("perfect !!!")
-                error = right - left
-
-                dt = 0.2
-                derivative = error - prevErr
-
-                #print (derivative)
-
-                target_angular_vel = Kp*error + Kd*derivative
-
-                # print(target_angular_vel)
-                # print(Kd*derivative)
-                # print(left)
-                # print(right)
-                # print("-----------------------------------------------------------------")
-                # print(target_angular_vel,Kp*error, Kd*derivative)
-                prevErr = error
+            #print(preTime)
+            # print(rospy.Time.now())
+            # publish the angular velocity and linear velocity of the waffle-pi
             twist = Twist()
-            twist.linear.x = target_linear_vel; twist.linear.y = 0.0; twist.linear.z = 0.0
-            twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = target_angular_vel
+            twist.linear.x = target_linear_vel;
+            twist.linear.y = 0.0;
+            twist.linear.z = 0.0
+            twist.angular.x = 0.0;
+            twist.angular.y = 0.0;
+            twist.angular.z = 0;
 
             pub.publish(twist)
-            rospy.sleep(0.14)
+            rospy.sleep(2)
 
 
 
@@ -216,8 +99,12 @@ if __name__=="__main__":
 
     finally:
         twist = Twist()
-        twist.linear.x = 0.0; twist.linear.y = 0.0; twist.linear.z = 0.0
-        twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = 0.0
+        twist.linear.x = 0.0;
+        twist.linear.y = 0.0;
+        twist.linear.z = 0.0
+        twist.angular.x = 0.0;
+        twist.angular.y = 0.0;
+        twist.angular.z = 0.0
         pub.publish(twist)
 
     if os.name != 'nt':
