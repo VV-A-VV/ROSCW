@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Copyright (c) 2020, Yanbo Wang,Haolun Shan,Zechuan Duan KCL.
-
+import time
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Illuminance
@@ -13,6 +13,7 @@ if os.name == 'nt':
 else:
     import tty, termios
 
+preTime = 0
 left = 0  # Left  Light Senor value
 right = 0  # Right Light Senor value
 e = """
@@ -65,102 +66,16 @@ if __name__ == "__main__":
 
             # Give a initial linear velocity and angular velocity
             target_linear_vel = Tp
-            target_angular_vel = 0
+
+            tcount = time.time()
+            print(tcount)
+            #
+            preTime = tcount
+            if (dif > 2 and dif < 4):
+                target_linear_vel = 0
             # Whether meet obstacle
-            if len(distance) == 360:
-                minx = min(distance)
-                miny = distance.index(minx)
-                if 0.2 < minx < 0.3 and ((0 < miny < 45) or (315 < miny < 360)):
-                    isObstacle = True
-
-            # Avoid obstacle part
-            if isObstacle:
-
-                x = min(distance)
-                y = distance.index(x)
-
-                if start:
-                    if y < 180:
-                        if y < 100:
-                            target_angular_vel = 0.2
-                            target_linear_vel = 0
-                        elif y > 120:
-                            target_angular_vel = -0.2
-                            target_linear_vel = 0
-
-                        else:
-                            if x > 0.3:
-                                target_angular_vel = x
-                                target_linear_vel = 0.05
-                            if x < 0.25:
-                                target_angular_vel = -x
-                                target_linear_vel = 0.05
-                    else:
-
-                        if left == 201.0 and right == 201.0:
-                            Error = y - 280
-                            target_angular_vel = Error * 0.01
-
-                            if y < 280:
-                                target_linear_vel = 0
-                            elif y > 300:
-                                target_linear_vel = 0
-                            else:
-                                if x > 0.3:
-                                    target_linear_vel = 0.05
-                                if x < 0.25:
-                                    target_linear_vel = 0.05
-
-                        elif left == 201.0 or right == 201.0:
-                            Error = y - 240
-                            target_angular_vel = Error * 0.001
-                            if y < 250:
-                                target_linear_vel = 0
-                            elif y > 270:
-                                target_linear_vel = 0
-                            else:
-
-                                if x > 0.3:
-                                    target_linear_vel = 0.01
-                                if x < 0.25:
-                                    target_linear_vel = 0.01
-                else:
-                    if left == 201 and right == 201:
-                        target_linear_vel = 0.1
-                        target_angular_vel = 0
-                        start = True
-                    else:
-                        target_linear_vel = 0
-                        target_angular_vel = 0.12
-
-                if (left != 201.0 or right != 201.0) and start:
-                    target_linear_vel = 0.1
-                    if left < right:
-                        target_angular_vel = 0.15
-                    if left != 201.0 and right != 201.0:
-                        isObstacle = False
-                        start = False
-            # Line follow part
-            else:
-                if right < left - 20:
-
-                    target_linear_vel = 0.015
-
-                elif left == 201.0 and right == 201.0:
-                    target_linear_vel = -Tp
-
-                elif left < right - 20:
-
-                    target_linear_vel = 0.015
-                # use PD control to make sure the waffle-pi move smoothly and stably
-                error = right - left
-
-                dt = 0.2
-                derivative = error - prevErr
-
-                target_angular_vel = Kp * error + Kd * derivative
-
-                prevErr = error
+            print(preTime)
+            print(rospy.Time.now())
             # publish the angular velocity and linear velocity of the waffle-pi
             twist = Twist()
             twist.linear.x = target_linear_vel;
@@ -168,7 +83,7 @@ if __name__ == "__main__":
             twist.linear.z = 0.0
             twist.angular.x = 0.0;
             twist.angular.y = 0.0;
-            twist.angular.z = target_angular_vel
+            twist.angular.z = 0;
 
             pub.publish(twist)
             rospy.sleep(0.14)
