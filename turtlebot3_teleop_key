@@ -65,14 +65,14 @@ if __name__ == "__main__":
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
 
             # Give a initial linear velocity and angular velocity
-            target_linear_vel = Tp
+            target_linear_vel = 0.01
 
             tcount = time.time()
             #print(tcount)
             #
             dif = tcount - pretime
 
-            if (dif > 4):
+            if (dif > 18.6):
                 pretime = tcount
                 target_linear_vel = 0
             # Whether meet obstacle
@@ -90,7 +90,7 @@ if __name__ == "__main__":
             twist.angular.z = 0;
 
             pub.publish(twist)
-            rospy.sleep(2)
+            rospy.sleep(9.3)
 
 
 
