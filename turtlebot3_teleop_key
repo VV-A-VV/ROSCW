@@ -38,7 +38,7 @@ def callLaser(data):
     global distance
     distance = data.ranges
 
-def moveLeft(twist,pub):
+def moveFront(twist,pub):
     twist.linear.x = target_linear_vel;
     twist.linear.y = 0.0;
     twist.linear.z = 0.0
@@ -59,7 +59,7 @@ def moveLeft(twist,pub):
     pub.publish(twist)
 
 
-def moveRight(twist, pub):
+def moveBack(twist, pub):
     twist.linear.x = -target_linear_vel;
     twist.linear.y = 0.0;
     twist.linear.z = 0.0
@@ -79,6 +79,45 @@ def moveRight(twist, pub):
 
     pub.publish(twist)
 
+
+def moveRight(twist, pub):
+    twist.linear.x = 0;
+    twist.linear.y = 0.0;
+    twist.linear.z = 0.0
+    twist.angular.x = 0.0;
+    twist.angular.y = 0.0;
+    twist.angular.z = 0.1;
+
+    pub.publish(twist)
+    rospy.sleep(9.3)
+
+    twist.linear.x = 0;
+    twist.linear.y = 0.0;
+    twist.linear.z = 0.0
+    twist.angular.x = 0.0;
+    twist.angular.y = 0.0;
+    twist.angular.z = 0;
+
+    pub.publish(twist)
+def moveleft(twist, pub):
+    twist.linear.x = 0;
+    twist.linear.y = 0.0;
+    twist.linear.z = 0.0
+    twist.angular.x = 1;
+    twist.angular.y = 0.0;
+    twist.angular.z = 0.1;
+
+    pub.publish(twist)
+    rospy.sleep(9.3)
+
+    twist.linear.x = 0;
+    twist.linear.y = 0.0;
+    twist.linear.z = 0.0
+    twist.angular.x = 0.0;
+    twist.angular.y = 0.0;
+    twist.angular.z = 0.0;
+
+    pub.publish(twist)
 
 # Main function, include line follow and avoid obstacle
 if __name__ == "__main__":
@@ -123,7 +162,8 @@ if __name__ == "__main__":
             # print(rospy.Time.now())
             # publish the angular velocity and linear velocity of the waffle-pi
             twist = Twist()
-            moveLeft(twist,pub)
+
+            moveRight(twist,pub)
 
 
 
