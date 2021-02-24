@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     Kp = 0.002  # Kp of Line Follow
     Kd = 0.00009  # Kd of Line Follow
-    Tp = 0.07  # Initial line velocity
+    Tp = 0.045  # Initial line velocity
     prevErr = 0  # Previous Error
     pretime = 0
     isObstacle = False  # Whether start avoiding obstacle
