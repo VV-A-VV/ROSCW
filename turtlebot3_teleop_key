@@ -38,6 +38,47 @@ def callLaser(data):
     global distance
     distance = data.ranges
 
+def moveLeft(twist,pub):
+    twist.linear.x = target_linear_vel;
+    twist.linear.y = 0.0;
+    twist.linear.z = 0.0
+    twist.angular.x = 0.0;
+    twist.angular.y = 0.0;
+    twist.angular.z = 0;
+
+    pub.publish(twist)
+    rospy.sleep(9.3)
+
+    twist.linear.x = 0;
+    twist.linear.y = 0.0;
+    twist.linear.z = 0.0
+    twist.angular.x = 0.0;
+    twist.angular.y = 0.0;
+    twist.angular.z = 0;
+
+    pub.publish(twist)
+
+
+def moveRight(twist, pub):
+    twist.linear.x = -target_linear_vel;
+    twist.linear.y = 0.0;
+    twist.linear.z = 0.0
+    twist.angular.x = 0.0;
+    twist.angular.y = 0.0;
+    twist.angular.z = 0;
+
+    pub.publish(twist)
+    rospy.sleep(9.3)
+
+    twist.linear.x = 0;
+    twist.linear.y = 0.0;
+    twist.linear.z = 0.0
+    twist.angular.x = 0.0;
+    twist.angular.y = 0.0;
+    twist.angular.z = 0;
+
+    pub.publish(twist)
+
 
 # Main function, include line follow and avoid obstacle
 if __name__ == "__main__":
@@ -65,14 +106,14 @@ if __name__ == "__main__":
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
 
             # Give a initial linear velocity and angular velocity
-            target_linear_vel = Tp
+            target_linear_vel = 0.01
 
             tcount = time.time()
             #print(tcount)
             #
             dif = tcount - pretime
 
-            if (dif > 4):
+            if (dif > 18.6):
                 pretime = tcount
                 target_linear_vel = 0
             # Whether meet obstacle
@@ -82,15 +123,7 @@ if __name__ == "__main__":
             # print(rospy.Time.now())
             # publish the angular velocity and linear velocity of the waffle-pi
             twist = Twist()
-            twist.linear.x = target_linear_vel;
-            twist.linear.y = 0.0;
-            twist.linear.z = 0.0
-            twist.angular.x = 0.0;
-            twist.angular.y = 0.0;
-            twist.angular.z = 0;
-
-            pub.publish(twist)
-            rospy.sleep(2)
+            moveLeft(twist,pub)
 
 
 
