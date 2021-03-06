@@ -18,7 +18,7 @@ left = 0  # Left  Light Senor value
 right = 0  # Right Light Senor value
 grey = False
 white = True
-map = [white,grey,white,white,grey,white,white,white,grey,grey]
+map = [True,False,True,True,False,True,True,True,False,False]
 print(len(map))
 e = """
 Communications Failed
@@ -49,17 +49,17 @@ def moveFront(twist,pub):
     twist.linear.z = 0.0
     twist.angular.x = 0.0;
     twist.angular.y = 0.0;
-    twist.angular.z = 0;
-
+    twist.angular.z = 0.0;
     pub.publish(twist)
-    rospy.sleep(9.3)
 
-    twist.linear.x = 0;
+    rospy.sleep(9.3)
+    twist = Twist()
+    twist.linear.x = 0.0;
     twist.linear.y = 0.0;
     twist.linear.z = 0.0
     twist.angular.x = 0.0;
     twist.angular.y = 0.0;
-    twist.angular.z = 0;
+    twist.angular.z = 0.0;
 
     pub.publish(twist)
 
@@ -143,80 +143,85 @@ if __name__ == "__main__":
     isObstacle = False  # Whether start avoiding obstacle
     start = False  # Whether leave line and avoid obstacle
     sensorWork = 0.9
-    twist = Twist()
-    moveFront(twist, pub)
-    try:
+
         # Main loop
-        while(1):
-            # Subscribe sensors
-            sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
-            sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
-            sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
-            # 137min 163max(grey)             228min 246max(white)
+    while(1):
 
-            # Give a initial linear velocity and angular velocity
+        # Subscribe sensors
+        sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
+        sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
+        sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
+       # 137min 163max(grey)             228min 246max(white)
+        twist = Twist()
+        moveFront(twist, pub)
+        #Give a initial linear velocity and angular velocity
+        print(left)
+        if(137<=left and left <=163):              #grey
+            lognow.append(grey)
+            print("grey")
+
+        elif (228 <= left and left <=246):  # grey
+            lognow.append(white)
+            print("white")
+        else:
+            print("car die")
             print(left)
-            if(137<=left and left <=163):              #grey
-                lognow.append(grey)
-                print("grey")
+            rospy.sleep(1)
+            continue
 
-            elif (228 <= left and left <=246):  # grey
-                lognow.append(white)
-                print("white")
-            else:
-                print("car die")
-                print(left)
-                continue
+        maploc = [0,0,0,0,0,0,0,0,0,0]
+        print("lognow::")
+        print(lognow)
+        msize = len(map)
 
-            maploc = [0,0,0,0,0,0,0,0,0,0]
+        success = 0
+        successnow = False
+        sucposition = 0
+        for i in range(0,msize):
+            for y in range(0,(len(lognow))):
 
-            msize = len(map)-1
-
-            success = 2
-            successnow = True
-            sucposition = 0
-            for i in range(0,msize):
-                for y in range(0,len(lognow)-1):
-                    if(map[i+y] == lognow[y]):
-                        successnow = True
-                    else:
-                        successnow = False
-                if(successnow == False):
+                if(i+y>9):
+                    successnow = False
+                    break
+                if(map[i+y] == lognow[y]):
+                    print("f1")
                     successnow = True
-                elif (successnow == True):
-                    pos = i+len(lognow)
-                    maploc[pos] = 1
-                    supposition = pos
-                    success  = success + 1
+                    print("f0")
+                else:
+                    successnow = False
+                    print("f4")
+                    break
+            print("x")
+            if(successnow == False):
+                print ("f2")
+                successnow = True
+            elif(successnow == True):
+                print("f3")
+                pos = i+len(lognow)-1
+                print("pos:")
+                print(pos)
+                maploc[pos] = 1.0
+                supposition = pos
+                success = success + 1
+                print(success)
+        print("end")
+        if(success==1) :
+            print('we are in the position')
+            print(supposition)
+            break
+        else:
+            print("probability:")
+            for i in range(0,msize):
+               print(i)
+               print(maploc[i]/success)
+               print(' ')
 
-            if(success==1) :
-                print('we are in the position'+sucposition)
-                break
-            else:
-                print("probability:")
-                for i in maploc:
-                   print (i/success)
-                   print(' ')
 
-                twist = Twist()
-                moveFront(twist, pub)
-            #print(preTime)
-            #print(rospy.Time.now())
            # publish the angular velocity and linear velocity of the waffle-pi
             #137min 163max(grey)             228min 246max(white)
 
-    except:
-        print(e)
 
-    finally:
-        twist = Twist()
-        twist.linear.x = 0.0;
-        twist.linear.y = 0.0;
-        twist.linear.z = 0.0
-        twist.angular.x = 0.0;
-        twist.angular.y = 0.0;
-        twist.angular.z = 0.0
-        pub.publish(twist)
+
 
     if os.name != 'nt':
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
