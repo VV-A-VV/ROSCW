@@ -125,7 +125,23 @@ def moveleft(twist, pub):
 
 
     pub.publish(twist)
-
+def nomalization(estimation):
+    s = sum(estimation)
+    for i in range(len(estimation)):
+        estimation[i] = estimation[i]/s
+    return estimation
+def postPro(list1,list2):
+    list1.insert(0,0)
+    list1.pop()
+    for i in range(len(list1)):
+        list1[i] = list1[i]*list2[i]
+    return list1
+def postPro_back(list1,list2):
+    list1.insert(12,0)
+    list1.pop(0)
+    for i in range(len(list1)):
+        list1[i] = list1[i]*list2[i]
+    return list1
 # Main function, include line follow and avoid obstacle
 if __name__ == "__main__":
     if os.name != 'nt':
@@ -143,7 +159,11 @@ if __name__ == "__main__":
     isObstacle = False  # Whether start avoiding obstacle
     start = False  # Whether leave line and avoid obstacle
     sensorWork = 0.9
-
+    Estimation = [0.1]*12
+    Grey  = [0,0.05,0.18,0.05,0.05,0.18,0.05,0.05,0.18,0.18,0.18,0]
+    White = [0,0.18,0.05,0.18,0.18,0.05,0.18,0.18,0.05,0.05,0.05,0]
+    outBound = [0.45,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.45]
+    counter = 1
         # Main loop
     while(1):
 
@@ -153,70 +173,92 @@ if __name__ == "__main__":
         sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
        # 137min 163max(grey)             228min 246max(white)
         twist = Twist()
-        moveFront(twist, pub)
-        #Give a initial linear velocity and angular velocity
-        print(left)
-        if(137<=left and left <=163):              #grey
-            lognow.append(grey)
-            print("grey")
+        if (counter % 3 != 0):
+            moveFront(twist, pub)
 
-        elif (228 <= left and left <=246):  # grey
-            lognow.append(white)
-            print("white")
+            if(137<=left and left <=163):              #grey
+                print("grey")
+                Estimation = postPro(Estimation,Grey)
+            elif (228 <= left and left <=246):  # grey
+                print("white")
+                Estimation = postPro(Estimation,White)
+
+            else:
+                print("car die")
+                Estimation = postPro(Estimation,outBound)
+                print(left)
+                rospy.sleep(1)
+                continue
         else:
-            print("car die")
-            print(left)
-            rospy.sleep(1)
-            continue
+            moveBack(twist,pub)
 
-        maploc = [0,0,0,0,0,0,0,0,0,0]
-        print("lognow::")
-        print(lognow)
-        msize = len(map)
+            if (137 <= left and left <= 163):  # grey
+                print("grey")
+                Estimation = postPro_back(Estimation, Grey)
+            elif (228 <= left and left <= 246):  # grey
+                print("white")
+                Estimation = postPro_back(Estimation, White)
 
-        success = 0
-        successnow = False
-        sucposition = 0
-        for i in range(0,msize):
-            for y in range(0,(len(lognow))):
+            else:
+                print("car die")
+                Estimation = postPro_back(Estimation, outBound)
+                print(left)
+                rospy.sleep(1)
+                continue
 
-                if(i+y>9):
-                    successnow = False
-                    break
-                if(map[i+y] == lognow[y]):
-                    print("f1")
-                    successnow = True
-                    print("f0")
-                else:
-                    successnow = False
-                    print("f4")
-                    break
-            print("x")
-            if(successnow == False):
-                print ("f2")
-                successnow = True
-            elif(successnow == True):
-                print("f3")
-                pos = i+len(lognow)-1
-                print("pos:")
-                print(pos)
-                maploc[pos] = 1.0
-                supposition = pos
-                success = success + 1
-                print(success)
-        print("end")
-        if(success==1) :
+        Estimation = nomalization(Estimation)
+        probability = max(Estimation)
+        print("Car is most likely in position", Estimation.index(probability))
+        print("The possibility is",probability)
+        print(Estimation)
+        # maploc = [0,0,0,0,0,0,0,0,0,0]
+        # print("lognow::")
+        # print(lognow)
+        # msize = len(map)
+        #
+        # success = 0
+        # successnow = False
+        # sucposition = 0
+        # for i in range(0,msize):
+        #     for y in range(0,(len(lognow))):
+        #
+        #         if(i+y>9):
+        #             successnow = False
+        #             break
+        #         if(map[i+y] == lognow[y]):
+        #             print("f1")
+        #             successnow = True
+        #             print("f0")
+        #         else:
+        #             successnow = False
+        #             print("f4")
+        #             break
+        #     print("x")
+        #     if(successnow == False):
+        #         print ("f2")
+        #         successnow = True
+        #     elif(successnow == True):
+        #         print("f3")
+        #         pos = i+len(lognow)-1
+        #         print("pos:")
+        #         print(pos)
+        #         maploc[pos] = 1.0
+        #         supposition = pos
+        #         success = success + 1
+        #         print(success)
+        # print("end")
+        if(probability > 0.9) :
             print('we are in the position')
-            print(supposition)
+            print(Estimation.index(probability))
             break
-        else:
-            print("probability:")
-            for i in range(0,msize):
-               print(i)
-               print(maploc[i]/success)
-               print(' ')
+        # else:
+        #     print("probability:")
+        #     for i in range(0,msize):
+        #        print(i)
+        #        print(maploc[i]/success)
+        #        print(' ')
 
-
+        counter += 1
            # publish the angular velocity and linear velocity of the waffle-pi
             #137min 163max(grey)             228min 246max(white)
 
