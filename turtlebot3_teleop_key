@@ -16,6 +16,10 @@ else:
 preTime = 0
 left = 0  # Left  Light Senor value
 right = 0  # Right Light Senor value
+grey = False
+white = True
+map = [white,grey,white,white,grey,white,white,white,grey,grey]
+print(len(map))
 e = """
 Communications Failed
 """
@@ -39,6 +43,7 @@ def callLaser(data):
     distance = data.ranges
 
 def moveFront(twist,pub):
+    print("movefront")
     twist.linear.x = target_linear_vel;
     twist.linear.y = 0.0;
     twist.linear.z = 0.0
@@ -128,8 +133,8 @@ if __name__ == "__main__":
 
     rospy.init_node('topic_subscriber')
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
-    distance = []
-
+    lognow = []
+    target_linear_vel = 0.01
     Kp = 0.002  # Kp of Line Follow
     Kd = 0.00009  # Kd of Line Follow
     Tp = 0.07  # Initial line velocity
@@ -137,7 +142,9 @@ if __name__ == "__main__":
     pretime = 0
     isObstacle = False  # Whether start avoiding obstacle
     start = False  # Whether leave line and avoid obstacle
-
+    sensorWork = 0.9
+    twist = Twist()
+    moveFront(twist, pub)
     try:
         # Main loop
         while(1):
@@ -145,20 +152,58 @@ if __name__ == "__main__":
             sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
             sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
             sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
+            # 137min 163max(grey)             228min 246max(white)
 
             # Give a initial linear velocity and angular velocity
-            target_linear_vel = 0.01
+            print(left)
+            if(137<=left and left <=163):              #grey
+                lognow.append(grey)
+                print("grey")
+
+            elif (228 <= left and left <=246):  # grey
+                lognow.append(white)
+                print("white")
+            else:
+                print("car die")
+                print(left)
+                continue
+
+            maploc = [0,0,0,0,0,0,0,0,0,0]
+
+            msize = len(map)-1
+
+            success = 2
+            successnow = True
+            sucposition = 0
+            for i in range(0,msize):
+                for y in range(0,len(lognow)-1):
+                    if(map[i+y] == lognow[y]):
+                        successnow = True
+                    else:
+                        successnow = False
+                if(successnow == False):
+                    successnow = True
+                elif (successnow == True):
+                    pos = i+len(lognow)
+                    maploc[pos] = 1
+                    supposition = pos
+                    success  = success + 1
+
+            if(success==1) :
+                print('we are in the position'+sucposition)
+                break
+            else:
+                print("probability:")
+                for i in maploc:
+                   print (i/success)
+                   print(' ')
+
+                twist = Twist()
+                moveFront(twist, pub)
             #print(preTime)
-            # print(rospy.Time.now())
-            # publish the angular velocity and linear velocity of the waffle-pi
-            twist = Twist()
-
-            moveRight(twist,pub)
-            moveleft(twist,pub)
-
-
-
-
+            #print(rospy.Time.now())
+           # publish the angular velocity and linear velocity of the waffle-pi
+            #137min 163max(grey)             228min 246max(white)
 
     except:
         print(e)
