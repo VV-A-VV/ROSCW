@@ -2,17 +2,19 @@
 
 # Copyright (c) 2020, Yanbo Wang,Haolun Shan,Zechuan Duan KCL.
 import time
+import threading
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Illuminance
 from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import Odometry
 import sys, select, os
-
 if os.name == 'nt':
     import msvcrt
 else:
     import tty, termios
-
+poseRead = 0
+angularPosRead = 0
 preTime = 0
 left = 0  # Left  Light Senor value
 right = 0  # Right Light Senor value
@@ -36,6 +38,10 @@ def callbacktwo(data):
     global left
     left = data.illuminance
 
+def thread_job():
+    rospy.spin()
+
+
 
 # Get Laser Scan value
 def callLaser(data):
@@ -53,7 +59,6 @@ def moveFront(twist,pub):
     pub.publish(twist)
 
     rospy.sleep(9.3)
-    twist = Twist()
     twist.linear.x = 0.0;
     twist.linear.y = 0.0;
     twist.linear.z = 0.0
@@ -142,12 +147,21 @@ def postPro_back(list1,list2):
     for i in range(len(list1)):
         list1[i] = list1[i]*list2[i]
     return list1
+
+
+def callOdom(data):
+    global poseRead
+    global angularPosRead
+    poseRead = data.pose
+    angularPosRead = data.twist
+
+
+
 # Main function, include line follow and avoid obstacle
 if __name__ == "__main__":
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
-
-    rospy.init_node('topic_subscriber')
+    rospy.init_node('topic_subscriber',anonymous=False)
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
     lognow = []
     target_linear_vel = 0.01
@@ -164,101 +178,66 @@ if __name__ == "__main__":
     White = [0,0.18,0.05,0.18,0.18,0.05,0.18,0.18,0.05,0.05,0.05,0]
     outBound = [0.45,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.45]
     counter = 1
+    rospy.Subscriber("/scan", LaserScan, callLaser)
+    rospy.Subscriber("/odom", Odometry, callOdom)
         # Main loop
     while(1):
-
+        #msg = rospy.wait_for_message("/camera/depth/color/points", PointCloud2, timeout=None)
         # Subscribe sensors
         sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
         sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
-        sub4 = rospy.Subscriber("/scan", LaserScan, callLaser)
+        counter = 0
+        print(poseRead)
+        print(angularPosRead)
+        print("??????????????????????????????????????")
+        rospy.sleep(1)
        # 137min 163max(grey)             228min 246max(white)
-        twist = Twist()
-        if (counter % 3 != 0):
-            moveFront(twist, pub)
-
-            if(137<=left and left <=163):              #grey
-                print("grey")
-                Estimation = postPro(Estimation,Grey)
-            elif (228 <= left and left <=246):  # grey
-                print("white")
-                Estimation = postPro(Estimation,White)
-
-            else:
-                print("car die")
-                Estimation = postPro(Estimation,outBound)
-                print(left)
-                rospy.sleep(1)
-                continue
-        else:
-            moveBack(twist,pub)
-
-            if (137 <= left and left <= 163):  # grey
-                print("grey")
-                Estimation = postPro_back(Estimation, Grey)
-            elif (228 <= left and left <= 246):  # grey
-                print("white")
-                Estimation = postPro_back(Estimation, White)
-
-            else:
-                print("car die")
-                Estimation = postPro_back(Estimation, outBound)
-                print(left)
-                rospy.sleep(1)
-                continue
-
-        Estimation = nomalization(Estimation)
-        probability = max(Estimation)
-        print("Car is most likely in position", Estimation.index(probability))
-        print("The possibility is",probability)
-        print(Estimation)
-        # maploc = [0,0,0,0,0,0,0,0,0,0]
-        # print("lognow::")
-        # print(lognow)
-        # msize = len(map)
-        #
-        # success = 0
-        # successnow = False
-        # sucposition = 0
-        # for i in range(0,msize):
-        #     for y in range(0,(len(lognow))):
-        #
-        #         if(i+y>9):
-        #             successnow = False
-        #             break
-        #         if(map[i+y] == lognow[y]):
-        #             print("f1")
-        #             successnow = True
-        #             print("f0")
-        #         else:
-        #             successnow = False
-        #             print("f4")
-        #             break
-        #     print("x")
-        #     if(successnow == False):
-        #         print ("f2")
-        #         successnow = True
-        #     elif(successnow == True):
-        #         print("f3")
-        #         pos = i+len(lognow)-1
-        #         print("pos:")
-        #         print(pos)
-        #         maploc[pos] = 1.0
-        #         supposition = pos
-        #         success = success + 1
-        #         print(success)
-        # print("end")
-        if(probability > 0.9) :
-            print('we are in the position')
-            print(Estimation.index(probability))
-            break
-        # else:
-        #     print("probability:")
-        #     for i in range(0,msize):
-        #        print(i)
-        #        print(maploc[i]/success)
-        #        print(' ')
-
-        counter += 1
+       #  twist = Twist()
+       #  if (counter % 3 != 0):
+       #      moveFront(twist, pub)
+       #
+       #      if(137<=left and left <=163):              #grey
+       #          print("grey")
+       #          Estimation = postPro(Estimation,Grey)
+       #      elif (228 <= left and left <=246):  # grey
+       #          print("white")
+       #          Estimation = postPro(Estimation,White)
+       #
+       #      else:
+       #          print("car die")
+       #          Estimation = postPro(Estimation,outBound)
+       #          print(left)
+       #          rospy.sleep(1)
+       #          continue
+       #  else:
+       #      moveBack(twist,pub)
+       #
+       #      if (137 <= left and left <= 163):  # grey
+       #          print("grey")
+       #          Estimation = postPro_back(Estimation, Grey)
+       #      elif (228 <= left and left <= 246):  # grey
+       #          print("white")
+       #          Estimation = postPro_back(Estimation, White)
+       #
+       #      else:
+       #          print("car die")
+       #          Estimation = postPro_back(Estimation, outBound)
+       #          print(left)
+       #          rospy.sleep(1)
+       #          continue
+       #
+       #  Estimation = nomalization(Estimation)
+       #  probability = max(Estimation)
+       #  print("Car is most likely in position", Estimation.index(probability))
+       #  print("The possibility is",probability)
+       #  print(Estimation)
+       #
+       #  if(probability > 0.9) :
+       #      print('we are in the position')
+       #      print(Estimation.index(probability))
+       #      break
+       #
+       #  counter += 1
            # publish the angular velocity and linear velocity of the waffle-pi
             #137min 163max(grey)             228min 246max(white)
 
