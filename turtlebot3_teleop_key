@@ -4,6 +4,7 @@
 import time
 import threading
 import rospy
+import tf
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Illuminance
 from sensor_msgs.msg import LaserScan
@@ -14,7 +15,7 @@ if os.name == 'nt':
 else:
     import tty, termios
 poseRead = 0
-angularPosRead = 0
+yaw= 0
 preTime = 0
 left = 0  # Left  Light Senor value
 right = 0  # Right Light Senor value
@@ -151,9 +152,15 @@ def postPro_back(list1,list2):
 
 def callOdom(data):
     global poseRead
-    global angularPosRead
+    global yaw
     poseRead = data.pose
-    angularPosRead = data.twist
+    quaternion = (
+        poseRead.pose.orientation.x,
+        poseRead.pose.orientation.y,
+        poseRead.pose.orientation.z,
+        poseRead.pose.orientation.w)
+    euler = tf.transformations.euler_from_quaternion(quaternion)
+    yaw = euler[2]
 
 
 
@@ -180,16 +187,14 @@ if __name__ == "__main__":
     counter = 1
     rospy.Subscriber("/scan", LaserScan, callLaser)
     rospy.Subscriber("/odom", Odometry, callOdom)
+    sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
+    sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
         # Main loop
     while(1):
-        #msg = rospy.wait_for_message("/camera/depth/color/points", PointCloud2, timeout=None)
         # Subscribe sensors
-        sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
-        sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
-        counter = 0
         print(poseRead)
-        print(angularPosRead)
-        print("??????????????????????????????????????")
+        print("++++++++++")
+        print(yaw)
         rospy.sleep(1)
        # 137min 163max(grey)             228min 246max(white)
        #  twist = Twist()
