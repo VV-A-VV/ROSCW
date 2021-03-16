@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Copyright (c) 2020, Yanbo Wang,Haolun Shan,Zechuan Duan KCL.
-import time
+import math
 import threading
 import rospy
 import tf
@@ -10,22 +10,27 @@ from sensor_msgs.msg import Illuminance
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 import sys, select, os
+
 if os.name == 'nt':
     import msvcrt
 else:
     import tty, termios
 poseRead = 0
-yaw= 0
+yaw = 0
 preTime = 0
 left = 0  # Left  Light Senor value
 right = 0  # Right Light Senor value
 grey = False
 white = True
-map = [True,False,True,True,False,True,True,True,False,False]
-print(len(map))
+targetx = 1.07
+targety = -1.51
+targetyaw = 0.783508
+pose_x = 0
+pose_y = 0
 e = """
 Communications Failed
 """
+pi = 3.1415926535
 
 
 # Get Right Light Sensor value
@@ -39,9 +44,9 @@ def callbacktwo(data):
     global left
     left = data.illuminance
 
+
 def thread_job():
     rospy.spin()
-
 
 
 # Get Laser Scan value
@@ -49,7 +54,29 @@ def callLaser(data):
     global distance
     distance = data.ranges
 
-def moveFront(twist,pub):
+
+# x is the distance of each direction
+# y is the degree of obstacle
+# the number of y is increasing from left to right(0 to 360)
+
+
+def calculation(distance, loaction):
+    x_direction_force = 0
+    y_direction_force = 0
+    for i in range(360):
+        if (distance[i] == "inf"):
+            x_direction_force += 0
+            y_direction_force += 0
+        else:
+            y_direction_force += distance[i] * distance[i] * math.sin(math.radians(i))
+            x_direction_force += distance[i] * distance[i] * math.cos(math.radians(i))
+
+    degree = math.atant(y_direction_force / x_direction_force)
+    degree += 1 / 2 * pi
+    z_forces = math.sqrt(x_direction_force * x_direction_force + y_direction_force * y_direction_force)
+
+
+def moveFront(twist, pub):
     print("movefront")
     twist.linear.x = target_linear_vel;
     twist.linear.y = 0.0;
@@ -110,6 +137,8 @@ def moveRight(twist, pub):
     twist.angular.z = 0;
 
     pub.publish(twist)
+
+
 def moveleft(twist, pub):
     twist.linear.x = 0;
     twist.linear.y = 0.0;
@@ -128,32 +157,40 @@ def moveleft(twist, pub):
     twist.angular.y = 0.0;
     twist.angular.z = 0.0;
 
-
-
     pub.publish(twist)
+
+
 def nomalization(estimation):
     s = sum(estimation)
     for i in range(len(estimation)):
-        estimation[i] = estimation[i]/s
+        estimation[i] = estimation[i] / s
     return estimation
-def postPro(list1,list2):
-    list1.insert(0,0)
+
+
+def postPro(list1, list2):
+    list1.insert(0, 0)
     list1.pop()
     for i in range(len(list1)):
-        list1[i] = list1[i]*list2[i]
+        list1[i] = list1[i] * list2[i]
     return list1
-def postPro_back(list1,list2):
-    list1.insert(12,0)
+
+
+def postPro_back(list1, list2):
+    list1.insert(12, 0)
     list1.pop(0)
     for i in range(len(list1)):
-        list1[i] = list1[i]*list2[i]
+        list1[i] = list1[i] * list2[i]
     return list1
 
 
 def callOdom(data):
     global poseRead
     global yaw
+    global pose_x
+    global pose_y
     poseRead = data.pose
+    pose_x = poseRead.pose.position.x
+    pose_y = poseRead.pose.position.y
     quaternion = (
         poseRead.pose.orientation.x,
         poseRead.pose.orientation.y,
@@ -163,12 +200,11 @@ def callOdom(data):
     yaw = euler[2]
 
 
-
 # Main function, include line follow and avoid obstacle
 if __name__ == "__main__":
     if os.name != 'nt':
         settings = termios.tcgetattr(sys.stdin)
-    rospy.init_node('topic_subscriber',anonymous=False)
+    rospy.init_node('topic_subscriber', anonymous=False)
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
     lognow = []
     target_linear_vel = 0.01
@@ -180,74 +216,109 @@ if __name__ == "__main__":
     isObstacle = False  # Whether start avoiding obstacle
     start = False  # Whether leave line and avoid obstacle
     sensorWork = 0.9
-    Estimation = [0.1]*12
-    Grey  = [0,0.05,0.18,0.05,0.05,0.18,0.05,0.05,0.18,0.18,0.18,0]
-    White = [0,0.18,0.05,0.18,0.18,0.05,0.18,0.18,0.05,0.05,0.05,0]
-    outBound = [0.45,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.45]
+    Estimation = [0.1] * 12
+    Grey = [0, 0.05, 0.18, 0.05, 0.05, 0.18, 0.05, 0.05, 0.18, 0.18, 0.18, 0]
+    White = [0, 0.18, 0.05, 0.18, 0.18, 0.05, 0.18, 0.18, 0.05, 0.05, 0.05, 0]
+    outBound = [0.45, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.45]
     counter = 1
     rospy.Subscriber("/scan", LaserScan, callLaser)
     rospy.Subscriber("/odom", Odometry, callOdom)
     sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
     sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
-        # Main loop
-    while(1):
+    distance_x = 999999
+    distance_y = 1
+    # Main loop
+    while (1):
         # Subscribe sensors
-        print(poseRead)
-        print("++++++++++")
-        print(yaw)
-        rospy.sleep(1)
-       # 137min 163max(grey)             228min 246max(white)
-       #  twist = Twist()
-       #  if (counter % 3 != 0):
-       #      moveFront(twist, pub)
-       #
-       #      if(137<=left and left <=163):              #grey
-       #          print("grey")
-       #          Estimation = postPro(Estimation,Grey)
-       #      elif (228 <= left and left <=246):  # grey
-       #          print("white")
-       #          Estimation = postPro(Estimation,White)
-       #
-       #      else:
-       #          print("car die")
-       #          Estimation = postPro(Estimation,outBound)
-       #          print(left)
-       #          rospy.sleep(1)
-       #          continue
-       #  else:
-       #      moveBack(twist,pub)
-       #
-       #      if (137 <= left and left <= 163):  # grey
-       #          print("grey")
-       #          Estimation = postPro_back(Estimation, Grey)
-       #      elif (228 <= left and left <= 246):  # grey
-       #          print("white")
-       #          Estimation = postPro_back(Estimation, White)
-       #
-       #      else:
-       #          print("car die")
-       #          Estimation = postPro_back(Estimation, outBound)
-       #          print(left)
-       #          rospy.sleep(1)
-       #          continue
-       #
-       #  Estimation = nomalization(Estimation)
-       #  probability = max(Estimation)
-       #  print("Car is most likely in position", Estimation.index(probability))
-       #  print("The possibility is",probability)
-       #  print(Estimation)
-       #
-       #  if(probability > 0.9) :
-       #      print('we are in the position')
-       #      print(Estimation.index(probability))
-       #      break
-       #
-       #  counter += 1
-           # publish the angular velocity and linear velocity of the waffle-pi
-            #137min 163max(grey)             228min 246max(white)
+       # print(poseRead)
+        while (1):
+            # Subscribe sensors
+            # print(poseRead)
+            distance_x = targetx - pose_x
+            distance_y = targety - pose_y
+            beta = math.atan(distance_y / distance_x)
+            alpha1 = beta - yaw
+            alpha2 = beta - yaw + pi
+            if (abs(alpha1) < abs(alpha2)):
+                alpha = alpha1
+            else:
+                alpha = alpha2
+            # if(pose_x > 0):
+            #     if(pose_y > 0):
+            #         alpha = beta - yaw
+            #     else:
+            #         disi
+            # else:
+            #     if(pose_y > 0):
+            #         direction
+            #     else:
+            #         disan
+            # alpha = min(beta - yaw, beta - yaw + pi)
+            print("beta:")
+            print(beta)
+            print("alpha:")
+            print(alpha)
+            print("yaw:")
+            print(yaw)
+            twist = Twist()
+            twist.linear.x = 0.0;
+            twist.linear.y = 0.1;
+            twist.linear.z = 0.1
+            twist.angular.x = 0.0;
+            twist.angular.y = 0.0;
+            twist.angular.z = 0.0;
+            pub.publish(twist)
+            rospy.sleep(1)
 
+    #    137min 163max(grey)             228min 246max(white)
+    #     twist = Twist()
+    #     if (counter % 3 != 0):
+    #         moveFront(twist, pub)
 
+    #         if(137<=left and left <=163):              #grey
+    #             print("grey")
+    #             Estimation = postPro(Estimation,Grey)
+    #         elif (228 <= left and left <=246):  # grey
+    #             print("white")
+    #             Estimation = postPro(Estimation,White)
 
+    #         else:
+    #             print("car die")
+    #             Estimation = postPro(Estimation,outBound)
+    #             print(left)
+    #             rospy.sleep(1)
+    #             continue
+    #     else:
+    #         moveBack(twist,pub)
+
+    #         if (137 <= left and left <= 163):  # grey
+    #             print("grey")
+    #             Estimation = postPro_back(Estimation, Grey)
+    #         elif (228 <= left and left <= 246):  # grey
+    #             print("white")
+    #             Estimation = postPro_back(Estimation, White)
+
+    #         else:
+    #             print("car die")
+    #             Estimation = postPro_back(Estimation, outBound)
+    #             print(left)
+    #             rospy.sleep(1)
+    #             continue
+
+    #     Estimation = nomalization(Estimation)
+    #     probability = max(Estimation)
+    #     print("Car is most likely in position", Estimation.index(probability))
+    #     print("The possibility is",probability)
+    #     print(Estimation)
+
+    #     if(probability > 0.9) :
+    #         print('we are in the position')
+    #         print(Estimation.index(probability))
+    #         break
+
+    #     counter += 1
+    #        publish the angular velocity and linear velocity of the waffle-pi
+    #         137min 163max(grey)             228min 246max(white)
 
     if os.name != 'nt':
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
