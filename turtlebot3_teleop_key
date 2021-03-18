@@ -22,11 +22,14 @@ left = 0  # Left  Light Senor value
 right = 0  # Right Light Senor value
 grey = False
 white = True
-targetx = 1.07
-targety = -1.51
+targetx = 1.60
+targety = -1.03
 targetyaw = 0.783508
 pose_x = 0
 pose_y = 0
+x_direction_force = 0
+y_direction_force = 0
+distance = ["inf"]*360
 e = """
 Communications Failed
 """
@@ -60,7 +63,9 @@ def callLaser(data):
 # the number of y is increasing from left to right(0 to 360)
 
 
-def calculation(distance, loaction):
+def calculation(distance):
+    global x_direction_force
+    global y_direction_force
     x_direction_force = 0
     y_direction_force = 0
     for i in range(360):
@@ -68,12 +73,7 @@ def calculation(distance, loaction):
             x_direction_force += 0
             y_direction_force += 0
         else:
-            y_direction_force += distance[i] * distance[i] * math.sin(math.radians(i))
-            x_direction_force += distance[i] * distance[i] * math.cos(math.radians(i))
-
-    degree = math.atant(y_direction_force / x_direction_force)
-    degree += 1 / 2 * pi
-    z_forces = math.sqrt(x_direction_force * x_direction_force + y_direction_force * y_direction_force)
+            x_direction_force += 1/(distance[i] * distance[i]) * math.cos(math.radians(i))
 
 
 def moveFront(twist, pub):
@@ -208,11 +208,8 @@ if __name__ == "__main__":
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
     lognow = []
     target_linear_vel = 0.01
-    Kp = 0.002  # Kp of Line Follow
-    Kd = 0.00009  # Kd of Line Follow
-    Tp = 0.07  # Initial line velocity
-    prevErr = 0  # Previous Error
-    pretime = 0
+    Kangular = 0.002
+    Vangular = 0
     isObstacle = False  # Whether start avoiding obstacle
     start = False  # Whether leave line and avoid obstacle
     sensorWork = 0.9
@@ -223,52 +220,60 @@ if __name__ == "__main__":
     counter = 1
     rospy.Subscriber("/scan", LaserScan, callLaser)
     rospy.Subscriber("/odom", Odometry, callOdom)
-    sub = rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
-    sub2 = rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
+    rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
+    rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
     distance_x = 999999
     distance_y = 1
     # Main loop
     while (1):
         # Subscribe sensors
        # print(poseRead)
-        while (1):
-            # Subscribe sensors
-            # print(poseRead)
-            distance_x = targetx - pose_x
-            distance_y = targety - pose_y
-            beta = math.atan(distance_y / distance_x)
-            alpha1 = beta - yaw
-            alpha2 = beta - yaw + pi
-            if (abs(alpha1) < abs(alpha2)):
-                alpha = alpha1
-            else:
-                alpha = alpha2
-            # if(pose_x > 0):
-            #     if(pose_y > 0):
-            #         alpha = beta - yaw
-            #     else:
-            #         disi
-            # else:
-            #     if(pose_y > 0):
-            #         direction
-            #     else:
-            #         disan
-            # alpha = min(beta - yaw, beta - yaw + pi)
-            print("beta:")
-            print(beta)
-            print("alpha:")
-            print(alpha)
-            print("yaw:")
-            print(yaw)
-            twist = Twist()
-            twist.linear.x = 0.0;
-            twist.linear.y = 0.1;
-            twist.linear.z = 0.1
-            twist.angular.x = 0.0;
-            twist.angular.y = 0.0;
-            twist.angular.z = 0.0;
-            pub.publish(twist)
-            rospy.sleep(1)
+        calculation(distance)
+        distance_x = targetx - pose_x
+        distance_y = targety - pose_y
+        beta = math.atan(distance_y/distance_x)
+        alpha1 = beta - yaw
+        alpha2 = beta - yaw + pi
+        if(abs(alpha1) < abs(alpha2) ):
+            alpha = alpha1
+        else:
+            alpha = alpha2
+
+        #
+        # if(alpha<0):
+        #     Vangular = alpha*0.06
+        #
+        # if(alpha>0):
+        #     Vangular = alpha*0.06
+
+        if(x_direction_force>0):
+            Vangular = x_direction_force * 0.006
+
+        if (x_direction_force < 0):
+            Vangular = x_direction_force * 0.006
+        # if(x_direction_force>0)
+
+        # if(pose_x > 0):
+        #     if(pose_y > 0):
+        #         alpha = beta - yaw
+        #     else:
+        #         disi
+        # else:
+        #     if(pose_y > 0):
+        #         direction
+        #     else:
+        #         disan
+        # alpha = min(beta - yaw, beta - yaw + pi)
+        twist = Twist()
+        twist.linear.x = 0.1;
+        twist.linear.y = 0.0;
+        twist.linear.z = 0.0;
+        twist.angular.x = 0.0;
+        twist.angular.y = 0.0;
+        twist.angular.z = Vangular;
+
+        pub.publish(twist)
+        rospy.sleep(1)
 
     #    137min 163max(grey)             228min 246max(white)
     #     twist = Twist()
