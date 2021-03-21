@@ -22,9 +22,9 @@ left = 0  # Left  Light Senor value
 right = 0  # Right Light Senor value
 grey = False
 white = True
-targetx = 1.60
-targety = -1.03
-targetyaw = 0.783508
+targetx = 1.081522
+targety = -1.575188
+targetyaw = 0.035925
 pose_x = 0
 pose_y = 0
 x_direction_force = 0
@@ -62,19 +62,24 @@ def callLaser(data):
 # y is the degree of obstacle
 # the number of y is increasing from left to right(0 to 360)
 
-
 def calculation(distance):
+    global degree
     global x_direction_force
     global y_direction_force
     x_direction_force = 0
     y_direction_force = 0
     for i in range(360):
-        if (distance[i] == "inf"):
+        if (distance[i] == "inf" or distance[i] >1 or i>90 and i<270 ):
             x_direction_force += 0
             y_direction_force += 0
         else:
-            x_direction_force += 1/(distance[i] * distance[i]) * math.cos(math.radians(i))
-
+            y_direction_force += 1/(distance[i] *distance[i])* math.sin(math.radians(i))
+            x_direction_force += 1/(distance[i] *distance[i]) * math.cos(math.radians(i))
+    if(y_direction_force == 0):
+        degree = 0
+    else:
+        degree = math.atan(y_direction_force / x_direction_force)
+    z_forces = math.sqrt(x_direction_force * x_direction_force + y_direction_force * y_direction_force)
 
 def moveFront(twist, pub):
     print("movefront")
@@ -228,7 +233,11 @@ if __name__ == "__main__":
     while (1):
         # Subscribe sensors
        # print(poseRead)
+
+
+
         calculation(distance)
+
         distance_x = targetx - pose_x
         distance_y = targety - pose_y
         beta = math.atan(distance_y/distance_x)
@@ -239,20 +248,29 @@ if __name__ == "__main__":
         else:
             alpha = alpha2
 
-        #
-        # if(alpha<0):
-        #     Vangular = alpha*0.06
-        #
-        # if(alpha>0):
-        #     Vangular = alpha*0.06
 
-        if(x_direction_force>0):
-            Vangular = x_direction_force * 0.006
+        if(alpha<0):
+            Vangular = alpha*0.1
 
-        if (x_direction_force < 0):
-            Vangular = x_direction_force * 0.006
+        if(alpha>0):
+            Vangular = alpha*0.1
+        print("x:")
+        print(x_direction_force)
+        print("y:")
+        print(y_direction_force)
+
+        if(abs(distance_y)>0.3 or abs(distance_x)>0.3):
+            if(y_direction_force>0):
+                Vangular -= y_direction_force * 0.004
+                if (Vangular < -0.15):
+                    Vangular = -0.15
+            if (y_direction_force < 0):
+                Vangular -= y_direction_force * 0.004
+                if (Vangular > 0.15):
+                    Vangular = 0.15
         # if(x_direction_force>0)
-
+        print("degree:")
+        print(degree*180/pi)
         # if(pose_x > 0):
         #     if(pose_y > 0):
         #         alpha = beta - yaw
@@ -265,7 +283,8 @@ if __name__ == "__main__":
         #         disan
         # alpha = min(beta - yaw, beta - yaw + pi)
         twist = Twist()
-        twist.linear.x = 0.1;
+        twist.linear.x = 0.05 + y_direction_force*0.00004;
+
         twist.linear.y = 0.0;
         twist.linear.z = 0.0;
         twist.angular.x = 0.0;
