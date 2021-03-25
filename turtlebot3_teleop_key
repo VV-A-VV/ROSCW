@@ -22,9 +22,9 @@ left = 0  # Left  Light Senor value
 right = 0  # Right Light Senor value
 grey = False
 white = True
-targetx = 1.081522
-targety = -1.575188
-targetyaw = 0.035925
+targetx = 1.1148569
+targety = -1.492956
+targetyaw = 0.743460
 pose_x = 0
 pose_y = 0
 x_direction_force = 0
@@ -69,7 +69,7 @@ def calculation(distance):
     x_direction_force = 0
     y_direction_force = 0
     for i in range(360):
-        if (distance[i] == "inf" or distance[i] >1 or i>90 and i<270 ):
+        if (distance[i] == "inf" or distance[i] >1 or i>60 and i<300 ):
             x_direction_force += 0
             y_direction_force += 0
         else:
@@ -91,7 +91,7 @@ def moveFront(twist, pub):
     twist.angular.z = 0.0;
     pub.publish(twist)
 
-    rospy.sleep(9.3)
+    rospy.sleep(4.5)
     twist.linear.x = 0.0;
     twist.linear.y = 0.0;
     twist.linear.z = 0.0
@@ -123,46 +123,46 @@ def moveBack(twist, pub):
     pub.publish(twist)
 
 
-def moveRight(twist, pub):
-    twist.linear.x = 0;
-    twist.linear.y = 0.0;
-    twist.linear.z = 0.0
-    twist.angular.x = 0.0;
-    twist.angular.y = 0.0;
-    twist.angular.z = 0.075;
-
-    pub.publish(twist)
-    rospy.sleep(10)
-
-    twist.linear.x = 0;
-    twist.linear.y = 0.0;
-    twist.linear.z = 0.0
-    twist.angular.x = 0.0;
-    twist.angular.y = 0.0;
-    twist.angular.z = 0;
-
-    pub.publish(twist)
-
-
-def moveleft(twist, pub):
-    twist.linear.x = 0;
-    twist.linear.y = 0.0;
-    twist.linear.z = 0.0
-    twist.angular.x = 0;
-    twist.angular.y = 0.0;
-    twist.angular.z = -0.075;
-
-    pub.publish(twist)
-    rospy.sleep(10)
-
-    twist.linear.x = 0;
-    twist.linear.y = 0.0;
-    twist.linear.z = 0.0
-    twist.angular.x = 0.0;
-    twist.angular.y = 0.0;
-    twist.angular.z = 0.0;
-
-    pub.publish(twist)
+# def moveRight(twist, pub):
+#     twist.linear.x = 0;
+#     twist.linear.y = 0.0;
+#     twist.linear.z = 0.0
+#     twist.angular.x = 0.0;
+#     twist.angular.y = 0.0;
+#     twist.angular.z = 0.075;
+#
+#     pub.publish(twist)
+#     rospy.sleep(10)
+#
+#     twist.linear.x = 0;
+#     twist.linear.y = 0.0;
+#     twist.linear.z = 0.0
+#     twist.angular.x = 0.0;
+#     twist.angular.y = 0.0;
+#     twist.angular.z = 0;
+#
+#     pub.publish(twist)
+#
+#
+# def moveleft(twist, pub):
+#     twist.linear.x = 0;
+#     twist.linear.y = 0.0;
+#     twist.linear.z = 0.0
+#     twist.angular.x = 0;
+#     twist.angular.y = 0.0;
+#     twist.angular.z = -0.075;
+#
+#     pub.publish(twist)
+#     rospy.sleep(10)
+#
+#     twist.linear.x = 0;
+#     twist.linear.y = 0.0;
+#     twist.linear.z = 0.0
+#     twist.angular.x = 0.0;
+#     twist.angular.y = 0.0;
+#     twist.angular.z = 0.0;
+#
+#     pub.publish(twist)
 
 
 def nomalization(estimation):
@@ -218,131 +218,189 @@ if __name__ == "__main__":
     isObstacle = False  # Whether start avoiding obstacle
     start = False  # Whether leave line and avoid obstacle
     sensorWork = 0.9
-    Estimation = [0.1] * 12
-    Grey = [0, 0.05, 0.18, 0.05, 0.05, 0.18, 0.05, 0.05, 0.18, 0.18, 0.18, 0]
-    White = [0, 0.18, 0.05, 0.18, 0.18, 0.05, 0.18, 0.18, 0.05, 0.05, 0.05, 0]
-    outBound = [0.45, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.45]
-    counter = 1
+    Estimation = [0.1] * 26
+    White = [0, 0.066, 0.066, 0.001, 0.066, 0.066, 0.066, 0.001, 0.001, 0.066, 0.066, 0.001, 0.066, 0.066, 0.066, 0.001,
+            0.001, 0.066, 0.066, 0.066, 0.001, 0.001, 0.066, 0.066, 0.001, 0]
+    Grey = [0, 0.001, 0.001, 0.111, 0.001, 0.001, 0.001, 0.111, 0.111, 0.001, 0.001, 0.111, 0.001, 0.001, 0.001, 0.111,
+             0.111, 0.001, 0.001, 0.001, 0.111, 0.111, 0.001, 0.001, 0.111, 0]
+    # outBound = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
+    grey = True
+    white = False
+    map = [white,grey,grey,white,white,grey,grey,grey,white,white,grey,grey,grey,white,grey,grey,white,white,grey,grey,grey,white,grey,grey]
+    counter = 0
     rospy.Subscriber("/scan", LaserScan, callLaser)
     rospy.Subscriber("/odom", Odometry, callOdom)
     rospy.Subscriber('/light_sensor_plugin/lightSensor', Illuminance, callbackone)
     rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
     distance_x = 999999
     distance_y = 1
+    task = 2
     # Main loop
     while (1):
-        # Subscribe sensors
-       # print(poseRead)
+        if (task == 1):
+            twist = Twist()
+            print(left, right)
+            moveFront(twist, pub)
+
+            if (110 <= left and left <= 163):  # grey
+                print("grey")
+                lognow.append(grey)
+                Estimation = postPro(Estimation, Grey)
+            elif (228 <= left and left <= 260):  # grey
+                print("white")
+                lognow.append(white)
+                Estimation = postPro(Estimation, White)
+
+            else:
+                print("car die")
+                print(left)
+                rospy.sleep(1)
+                continue
+
+            maploc = [0]*24
+            print("lognow::")
+            print(lognow)
+            msize = len(map)
+            success = 0
+            successnow = False
+            sucposition = 0
+            for i in range(0, msize):
+                for y in range(0, (len(lognow))):
+
+                    if ((i + y) > 23):
+                        successnow = False
+                        break
+                    if (map[i + y] == lognow[y]):
+                        successnow = True
+                    else:
+                        successnow = False
+                        break
+                if (successnow == False):
+                    successnow = True
+                elif (successnow == True):
+                    pos = i + len(lognow) - 1
+                    print("pos:")
+                    print(pos)
+                    maploc[pos] = 1.0
+                    supposition = pos
+                    success = success + 1
+                    print(success)
+            if(success==1) :
+                print('we are in the position')
+                print(supposition)
+                task+=1
+            else:
+                print("probability:")
+                for i in range(0,msize):
+                   print(i)
+                   print(maploc[i]/success)
+                   print(' ')
+
+        if(task == 2):
+            calculation(distance)
+            distance_x = targetx - pose_x
+            distance_y = targety - pose_y
+            beta = math.atan(distance_y / distance_x)
+            alpha1 = beta - yaw
+            alpha2 = beta - yaw + pi
+            if(abs(alpha1) < abs(alpha2) ):
+                alpha = alpha1
+            else:
+                alpha = alpha2
+
+
+            if(alpha<0):
+                Vangular = -math.sqrt(alpha*alpha)*0.1
+
+            if(alpha>0):
+                Vangular = math.sqrt(alpha*alpha)*0.1
+
+            if(abs(distance_y)>0.3 or abs(distance_x)>0.3):
+                if(y_direction_force>0):
+                    Vangular -= y_direction_force * 0.0014
+                    if (Vangular < -0.15):
+                        Vangular = -0.15
+                if (y_direction_force < 0):
+                    Vangular -= y_direction_force * 0.0014
+                    if (Vangular > 0.15):
+                        Vangular = 0.15
+            # if(x_direction_force>0)
+            # if(pose_x > 0):
+            #     if(pose_y > 0):
+            #         alpha = beta - yaw
+            #     else:
+            #         disi
+            # else:
+            #     if(pose_y > 0):
+            #         direction
+            #     else:
+            #         disan
+            # alpha = min(beta - yaw, beta - yaw + pi)
+            twist = Twist()
+            if(abs(distance_y)<0.1 or abs(distance_x)<0.1):
+                twist.linear.x = 0.1*math.sqrt(abs(distance_y)*abs(distance_y)+abs(distance_x)*abs(distance_x))
+                counter +=1
+                rospy.sleep(0.2)
+                if(counter== 100):
+                    twist.linear.x = 0.0;
+                    twist.linear.y = 0.0;
+                    twist.linear.z = 0.0;
+                    twist.angular.x = 0.0;
+                    twist.angular.y = 0.0;
+                    twist.angular.z =0.0;
+                    counter =0
+                    pub.publish(twist)
+                    print("while one end")
+
+                    task += 1
+
+            else:
+                twist.linear.x = 0.03;
+
+            twist.linear.y = 0.0;
+            twist.linear.z = 0.0;
+            twist.angular.x = 0.0;
+            twist.angular.y = 0.0;
+            twist.angular.z = Vangular;
+
+            pub.publish(twist)
+
+        if(task == 3):
+            angv =0
+            twist = Twist()
+            ang=targetyaw-yaw
+            print
+            print(ang)
+            if(abs(ang)<0.05):
+                twist = Twist()
+                twist.linear.x = 0.05;
+                twist.linear.y = 0.0;
+                twist.linear.z = 0.0;
+                twist.angular.x = 0.0;
+                twist.angular.y = 0.0;
+                twist.angular.z = 0.0;
+                pub.publish(twist)
+            else:
+                twist = Twist()
+                twist.linear.x = 0.0;
+                twist.linear.y = 0.0;
+                twist.linear.z = 0.0;
+                twist.angular.x = 0.0;
+                twist.angular.y = 0.0;
+                twist.angular.z = ang*0.06;
+                pub.publish(twist)
+            rospy.sleep(0.2)
 
 
 
-        calculation(distance)
 
-        distance_x = targetx - pose_x
-        distance_y = targety - pose_y
-        beta = math.atan(distance_y/distance_x)
-        alpha1 = beta - yaw
-        alpha2 = beta - yaw + pi
-        if(abs(alpha1) < abs(alpha2) ):
-            alpha = alpha1
-        else:
-            alpha = alpha2
-
-
-        if(alpha<0):
-            Vangular = alpha*0.1
-
-        if(alpha>0):
-            Vangular = alpha*0.1
-        print("x:")
-        print(x_direction_force)
-        print("y:")
-        print(y_direction_force)
-
-        if(abs(distance_y)>0.3 or abs(distance_x)>0.3):
-            if(y_direction_force>0):
-                Vangular -= y_direction_force * 0.004
-                if (Vangular < -0.15):
-                    Vangular = -0.15
-            if (y_direction_force < 0):
-                Vangular -= y_direction_force * 0.004
-                if (Vangular > 0.15):
-                    Vangular = 0.15
-        # if(x_direction_force>0)
-        print("degree:")
-        print(degree*180/pi)
-        # if(pose_x > 0):
-        #     if(pose_y > 0):
-        #         alpha = beta - yaw
-        #     else:
-        #         disi
-        # else:
-        #     if(pose_y > 0):
-        #         direction
-        #     else:
-        #         disan
-        # alpha = min(beta - yaw, beta - yaw + pi)
-        twist = Twist()
-        twist.linear.x = 0.05 + y_direction_force*0.00004;
-
-        twist.linear.y = 0.0;
-        twist.linear.z = 0.0;
-        twist.angular.x = 0.0;
-        twist.angular.y = 0.0;
-        twist.angular.z = Vangular;
-
-        pub.publish(twist)
-        rospy.sleep(1)
 
     #    137min 163max(grey)             228min 246max(white)
     #     twist = Twist()
-    #     if (counter % 3 != 0):
-    #         moveFront(twist, pub)
 
-    #         if(137<=left and left <=163):              #grey
-    #             print("grey")
-    #             Estimation = postPro(Estimation,Grey)
-    #         elif (228 <= left and left <=246):  # grey
-    #             print("white")
-    #             Estimation = postPro(Estimation,White)
 
-    #         else:
-    #             print("car die")
-    #             Estimation = postPro(Estimation,outBound)
-    #             print(left)
-    #             rospy.sleep(1)
-    #             continue
-    #     else:
-    #         moveBack(twist,pub)
-
-    #         if (137 <= left and left <= 163):  # grey
-    #             print("grey")
-    #             Estimation = postPro_back(Estimation, Grey)
-    #         elif (228 <= left and left <= 246):  # grey
-    #             print("white")
-    #             Estimation = postPro_back(Estimation, White)
-
-    #         else:
-    #             print("car die")
-    #             Estimation = postPro_back(Estimation, outBound)
-    #             print(left)
-    #             rospy.sleep(1)
-    #             continue
-
-    #     Estimation = nomalization(Estimation)
-    #     probability = max(Estimation)
-    #     print("Car is most likely in position", Estimation.index(probability))
-    #     print("The possibility is",probability)
-    #     print(Estimation)
-
-    #     if(probability > 0.9) :
-    #         print('we are in the position')
-    #         print(Estimation.index(probability))
-    #         break
-
-    #     counter += 1
-    #        publish the angular velocity and linear velocity of the waffle-pi
-    #         137min 163max(grey)             228min 246max(white)
+           # publish the angular velocity and linear velocity of the waffle-pi
+           #  137min 163max(grey)             228min 246max(white)
 
     if os.name != 'nt':
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
