@@ -16,17 +16,28 @@ if os.name == 'nt':
 else:
     import tty, termios
 poseRead = 0
-yaw = 0
-preTime = 0
+
+
 left = 0  # Left  Light Senor value
-right = 0  # Right Light Senor value
 grey = False
 white = True
-targetx = 1.1148569
-targety = -1.492956
-targetyaw = 0.743460
+
+targetx1 = 0.990417
+targety1 = -3.612869
+targetx2 = 1.1148569
+targety2 = -1.492956
+
 pose_x = 0
 pose_y = 0
+targetx =  0.990417
+targety = -3.612869
+targetyaw = 0.743460
+yaw = 0
+
+
+task =1
+targetversion = 1
+targrt = 0
 x_direction_force = 0
 y_direction_force = 0
 distance = ["inf"]*360
@@ -234,7 +245,7 @@ if __name__ == "__main__":
     rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
     distance_x = 999999
     distance_y = 1
-    task = 2
+    target = 2
     # Main loop
     while (1):
         if (task == 1):
@@ -297,6 +308,7 @@ if __name__ == "__main__":
                    print(' ')
 
         if(task == 2):
+
             calculation(distance)
             distance_x = targetx - pose_x
             distance_y = targety - pose_y
@@ -337,7 +349,12 @@ if __name__ == "__main__":
             #         disan
             # alpha = min(beta - yaw, beta - yaw + pi)
             twist = Twist()
-            if(abs(distance_y)<0.1 or abs(distance_x)<0.1):
+            if (abs(distance_y) < 0.1 and abs(distance_x) < 0.1 and targetversion == 1):
+                targetx = targetx2
+                targety = targety2
+                target = 1
+
+            if(abs(distance_y)<0.1 and abs(distance_x)<0.1 and target ==1 ):
                 twist.linear.x = 0.1*math.sqrt(abs(distance_y)*abs(distance_y)+abs(distance_x)*abs(distance_x))
                 counter +=1
                 rospy.sleep(0.2)
@@ -354,23 +371,36 @@ if __name__ == "__main__":
 
                     task += 1
 
+                else:
+                    twist.linear.y = 0.0;
+                    twist.linear.z = 0.0;
+                    twist.angular.x = 0.0;
+                    twist.angular.y = 0.0;
+                    twist.angular.z = Vangular;
+                    pub.publish(twist)
+
+
             else:
                 twist.linear.x = 0.03;
 
-            twist.linear.y = 0.0;
-            twist.linear.z = 0.0;
-            twist.angular.x = 0.0;
-            twist.angular.y = 0.0;
-            twist.angular.z = Vangular;
+                twist.linear.y = 0.0;
+                twist.linear.z = 0.0;
+                twist.angular.x = 0.0;
+                twist.angular.y = 0.0;
+                twist.angular.z = Vangular;
 
-            pub.publish(twist)
+                pub.publish(twist)
 
         if(task == 3):
+            #165-175 yellow
+
             angv =0
             twist = Twist()
             ang=targetyaw-yaw
-            print
+            print(left)
             print(ang)
+
+
             if(abs(ang)<0.05):
                 twist = Twist()
                 twist.linear.x = 0.05;
