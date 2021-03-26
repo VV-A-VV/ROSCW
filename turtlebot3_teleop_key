@@ -13,6 +13,7 @@ import sys, select, os
 
 if os.name == 'nt':
     import msvcrt
+
 else:
     import tty, termios
 poseRead = 0
@@ -101,92 +102,19 @@ def moveFront(twist, pub):
 
     pub.publish(twist)
 
-
-def moveBack(twist, pub):
-    twist.linear.x = -target_linear_vel;
-    twist.linear.y = 0.0;
-    twist.linear.z = 0.0
-    twist.angular.x = 0.0;
-    twist.angular.y = 0.0;
-    twist.angular.z = 0;
-
-    pub.publish(twist)
-    rospy.sleep(9.3)
-
-    twist.linear.x = 0;
-    twist.linear.y = 0.0;
-    twist.linear.z = 0.0
-    twist.angular.x = 0.0;
-    twist.angular.y = 0.0;
-    twist.angular.z = 0;
-
-    pub.publish(twist)
-
-
-# def moveRight(twist, pub):
-#     twist.linear.x = 0;
-#     twist.linear.y = 0.0;
-#     twist.linear.z = 0.0
-#     twist.angular.x = 0.0;
-#     twist.angular.y = 0.0;
-#     twist.angular.z = 0.075;
-#
-#     pub.publish(twist)
-#     rospy.sleep(10)
-#
-#     twist.linear.x = 0;
-#     twist.linear.y = 0.0;
-#     twist.linear.z = 0.0
-#     twist.angular.x = 0.0;
-#     twist.angular.y = 0.0;
-#     twist.angular.z = 0;
-#
-#     pub.publish(twist)
-#
-#
-# def moveleft(twist, pub):
-#     twist.linear.x = 0;
-#     twist.linear.y = 0.0;
-#     twist.linear.z = 0.0
-#     twist.angular.x = 0;
-#     twist.angular.y = 0.0;
-#     twist.angular.z = -0.075;
-#
-#     pub.publish(twist)
-#     rospy.sleep(10)
-#
-#     twist.linear.x = 0;
-#     twist.linear.y = 0.0;
-#     twist.linear.z = 0.0
-#     twist.angular.x = 0.0;
-#     twist.angular.y = 0.0;
-#     twist.angular.z = 0.0;
-#
-#     pub.publish(twist)
-
-
 def nomalization(estimation):
     s = sum(estimation)
     for i in range(len(estimation)):
         estimation[i] = estimation[i] / s
+    print("-----------------------")
+    print(sum(estimation))
     return estimation
-
-
 def postPro(list1, list2):
     list1.insert(0, 0)
     list1.pop()
     for i in range(len(list1)):
         list1[i] = list1[i] * list2[i]
     return list1
-
-
-def postPro_back(list1, list2):
-    list1.insert(12, 0)
-    list1.pop(0)
-    for i in range(len(list1)):
-        list1[i] = list1[i] * list2[i]
-    return list1
-
 
 def callOdom(data):
     global poseRead
@@ -215,17 +143,17 @@ if __name__ == "__main__":
     target_linear_vel = 0.01
     Kangular = 0.002
     Vangular = 0
-    isObstacle = False  # Whether start avoiding obstacle
-    start = False  # Whether leave line and avoid obstacle
     sensorWork = 0.9
-    Estimation = [0.1] * 26
-    White = [0, 0.066, 0.066, 0.001, 0.066, 0.066, 0.066, 0.001, 0.001, 0.066, 0.066, 0.001, 0.066, 0.066, 0.066, 0.001,
-            0.001, 0.066, 0.066, 0.066, 0.001, 0.001, 0.066, 0.066, 0.001, 0]
-    Grey = [0, 0.001, 0.001, 0.111, 0.001, 0.001, 0.001, 0.111, 0.111, 0.001, 0.001, 0.111, 0.001, 0.001, 0.001, 0.111,
-             0.111, 0.001, 0.001, 0.001, 0.111, 0.111, 0.001, 0.001, 0.111, 0]
+    Estimation = [0.041666] * 25
+    White = [0, 0.9, 0.1, 0.1, 0.9, 0.9, 0.1, 0.1, 0.1, 0.9, 0.9, 0.1, 0.1, 0.1, 0.9, 0.1, 0.1, 0.9, 0.9, 0.1, 0.1, 0.1,
+             0.9, 0.1, 0.1]
+    Grey = [0, 0.1, 0.9, 0.9, 0.1, 0.1, 0.9, 0.9, 0.9, 0.1, 0.1, 0.9, 0.9, 0.9, 0.1, 0.9, 0.9, 0.1, 0.1, 0.9, 0.9, 0.9,
+            0.1, 0.9, 0.9]
     # outBound = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
     grey = True
     white = False
+    turn_aroundposi = False
+    turn_aroundnega = False
     map = [white,grey,grey,white,white,grey,grey,grey,white,white,grey,grey,grey,white,grey,grey,white,white,grey,grey,grey,white,grey,grey]
     counter = 0
     rospy.Subscriber("/scan", LaserScan, callLaser)
@@ -234,79 +162,68 @@ if __name__ == "__main__":
     rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
     distance_x = 999999
     distance_y = 1
-    task = 2
+    task = 5
     # Main loop
     while (1):
         if (task == 1):
             twist = Twist()
-            print(left, right)
+
             moveFront(twist, pub)
 
             if (110 <= left and left <= 163):  # grey
                 print("grey")
-                lognow.append(grey)
                 Estimation = postPro(Estimation, Grey)
-            elif (228 <= left and left <= 260):  # grey
+            elif (228 <= left and left <= 260):
                 print("white")
-                lognow.append(white)
                 Estimation = postPro(Estimation, White)
-
             else:
                 print("car die")
-                print(left)
+
                 rospy.sleep(1)
                 continue
 
-            maploc = [0]*24
-            print("lognow::")
-            print(lognow)
-            msize = len(map)
-            success = 0
-            successnow = False
-            sucposition = 0
-            for i in range(0, msize):
-                for y in range(0, (len(lognow))):
+            Estimation = nomalization(Estimation)
+            probability = max(Estimation)
+            print("Car is most likely in position", Estimation.index(probability))
+            print(Estimation)
 
-                    if ((i + y) > 23):
-                        successnow = False
-                        break
-                    if (map[i + y] == lognow[y]):
-                        successnow = True
-                    else:
-                        successnow = False
-                        break
-                if (successnow == False):
-                    successnow = True
-                elif (successnow == True):
-                    pos = i + len(lognow) - 1
-                    print("pos:")
-                    print(pos)
-                    maploc[pos] = 1.0
-                    supposition = pos
-                    success = success + 1
-                    print(success)
-            if(success==1) :
+            if (probability > 0.9):
                 print('we are in the position')
-                print(supposition)
-                task+=1
-            else:
-                print("probability:")
-                for i in range(0,msize):
-                   print(i)
-                   print(maploc[i]/success)
-                   print(' ')
+                print(Estimation.index(probability))
+                task += 1
+                rospy.sleep(10)
+            rospy.sleep(0.2)
 
+        calculation(distance)
+        distance_x = targetx - pose_x
+        distance_y = targety - pose_y
         if(task == 2):
-            calculation(distance)
-            distance_x = targetx - pose_x
-            distance_y = targety - pose_y
             beta = math.atan(distance_y / distance_x)
-            alpha1 = beta - yaw
-            alpha2 = beta - yaw + pi
-            if(abs(alpha1) < abs(alpha2) ):
-                alpha = alpha1
-            else:
-                alpha = alpha2
+
+            if(turn_aroundposi == True and yaw <-1.6):
+                yaw = 3.14
+            elif (turn_aroundnega == True and yaw >1.6):
+                yaw = -3.14
+
+            if (targetx < pose_x and targety < pose_y):
+                alpha = beta - yaw + pi
+                print("1")
+            if (targetx > pose_x and targety < pose_y):
+                print("2")
+                alpha = beta - yaw
+            if (targetx < pose_x and targety > pose_y):
+                alpha = beta - yaw + pi
+                print("3")
+            if (targetx > pose_x and targety > pose_y):
+                alpha = beta - yaw
+                print("4")
+
+            if (yaw > 1.56):
+                turn_aroundposi = True
+                turn_aroundnega = False
+            if (yaw < - 1.56):
+                turn_aroundposi = False
+                turn_aroundnega = True
             if(alpha<0):
                 Vangular = -math.sqrt(alpha*alpha)*0.1
             if(alpha>0):
@@ -316,24 +233,25 @@ if __name__ == "__main__":
             if(abs(distance_y)>0.3 or abs(distance_x)>0.3):
                 if(y_direction_force>0):
                     Vangular -= y_direction_force * 0.0014
-                    if (Vangular < -0.1):
-                        Vangular = -0.1
+                    if (Vangular < -0.15):
+                        Vangular = -0.15
                 if (y_direction_force < 0):
                     Vangular -= y_direction_force * 0.0014
-                    if (Vangular > 0.1):
-                        Vangular = 0.1
+                    if (Vangular > 0.15):
+                        Vangular = 0.15
 
-                if(alpha< -1.4):
+                if(alpha< -1.4 and alpha):
                     Vangular = -0.05
-                if(alpha > 1.4):
+                if(alpha >1.4 and alpha):
                     Vangular = 0.05
+
+
+
             twist = Twist()
             if(abs(distance_y)<0.1 and abs(distance_x)<0.1):
                 twist.linear.x = 0.1*math.sqrt(abs(distance_y)*abs(distance_y)+abs(distance_x)*abs(distance_x))
                 counter +=1
-                print("A")
-                rospy.sleep(0.2)
-                if(counter== 100):
+                if(counter== 70):
                     twist.linear.x = 0.0;
                     twist.linear.y = 0.0;
                     twist.linear.z = 0.0;
@@ -350,15 +268,25 @@ if __name__ == "__main__":
                 twist.linear.x = 0.03;
 
             twist.linear.y = 0.0;
-            twist.linear.z = 0.0  ;
+            twist.linear.z = 0.0;
             twist.angular.x = 0.0;
             twist.angular.y = 0.0;
             twist.angular.z = Vangular;
-            print(Vangular)
             pub.publish(twist)
+            print("a")
+            print(alpha)
+            print("b")
+            print(beta)
+            print("vol")
+            print(Vangular)
+            print("yaw")
+            print(yaw)
+            print("--------------------------------------")
 
+        rospy.sleep(0.2)
         if(task == 3):
             angv =0
+            print(left)
             twist = Twist()
             ang=targetyaw-yaw
             print(ang)
@@ -378,9 +306,122 @@ if __name__ == "__main__":
                 twist.linear.z = 0.0;
                 twist.angular.x = 0.0;
                 twist.angular.y = 0.0;
-                twist.angular.z = ang*0.06;
+                twist.angular.z = ang*0.1;
                 pub.publish(twist)
             rospy.sleep(0.2)
+            if(left<175 and left>165 ):
+                task+=1
+
+        if (task == 4):
+            angv = 0
+            print(task)
+            twist = Twist()
+            ang = targetyaw - yaw
+            print(x_direction_force)
+            if (abs(ang) < 0.05):
+                twist = Twist()
+                twist.linear.x = -0.05;
+                twist.linear.y = 0.0;
+                twist.linear.z = 0.0;
+                twist.angular.x = 0.0;
+                twist.angular.y = 0.0;
+                twist.angular.z = 0.0;
+                pub.publish(twist)
+            else:
+                twist = Twist()
+                twist.linear.x = 0.0;
+                twist.linear.y = 0.0;
+                twist.linear.z = 0.0;
+                twist.angular.x = 0.0;
+                twist.angular.y = 0.0;
+                twist.angular.z = ang * 0.1;
+                pub.publish(twist)
+            rospy.sleep(0.2)
+            if(abs(x_direction_force)<100):
+                targetx = 2.532043
+                targety = -2.270211
+                task+=1
+
+
+
+
+        if(task == 5):
+            beta = math.atan(distance_y / distance_x)
+            #
+            # if(turn_aroundposi == True and yaw <-1.6):
+            #     yaw = 3.14
+            # elif (turn_aroundnega == True and yaw >1.6):
+            #     yaw = -3.14
+
+            targetx = 2.097516
+            targety = -5.173410
+
+            print(task)
+            if (targetx < pose_x and targety < pose_y):
+                alpha = beta - yaw - pi
+                print("1")
+            if (targetx > pose_x and targety < pose_y):
+                print("2")
+                alpha = beta - yaw
+            if (targetx < pose_x and targety > pose_y):
+                alpha = beta - yaw - pi
+                print("3")
+            if (targetx > pose_x and targety > pose_y):
+                alpha = beta - yaw
+
+
+            if (yaw > 1.56):
+                turn_aroundposi = True
+                turn_aroundnega = False
+            if (yaw < - 1.56):
+                turn_aroundposi = False
+                turn_aroundnega = True
+
+            if(alpha<0):
+                Vangular = -math.sqrt(alpha*alpha)*0.1
+            if(alpha>0):
+                Vangular = math.sqrt(alpha*alpha)*0.1
+
+
+            if(abs(distance_y)>0.1 or abs(distance_x)>0.1):
+                if(y_direction_force>0):
+                    Vangular -= y_direction_force * 0.0014
+                    if (Vangular < -0.15):
+                        Vangular = -0.15
+                if (y_direction_force < 0):
+                    Vangular -= y_direction_force * 0.0014
+                    if (Vangular > 0.15):
+                        Vangular = 0.15
+            if (abs(distance_y) < 0.15 and abs(distance_x) < 0.15):
+                print("---------------------------------------------------------------")
+                targetx = 2.097516
+                targety = -5.173410
+
+
+                if(alpha< -1.4 and alpha):
+                    Vangular = -0.05
+                if(alpha >1.4 and alpha):
+                    Vangular = 0.05
+            twist = Twist()
+            twist.linear.x = 0.03;
+            twist.linear.y = 0.0;
+            twist.linear.z = 0.0;
+            twist.angular.x = 0.0;
+            twist.angular.y = 0.0;
+            twist.angular.z =Vangular;
+            pub.publish(twist)
+
+            print("a")
+            print(alpha)
+            print("a1")
+            print("b")
+            print(beta)
+            print("vol")
+            print(Vangular)
+            print("yaw")
+            print(yaw)
+            print("--------------------------------------")
+
 
 
 
