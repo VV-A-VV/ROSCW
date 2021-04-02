@@ -84,7 +84,7 @@ def calculation(distance):
 
 def moveFront(twist, pub):
     print("movefront")
-    twist.linear.x = target_linear_vel;
+    twist.linear.x = 0.01;
     twist.linear.y = 0.0;
     twist.linear.z = 0.0
     twist.angular.x = 0.0;
@@ -92,7 +92,7 @@ def moveFront(twist, pub):
     twist.angular.z = 0.0;
     pub.publish(twist)
 
-    rospy.sleep(4.5)
+    rospy.sleep(4.65)
     twist.linear.x = 0.0;
     twist.linear.y = 0.0;
     twist.linear.z = 0.0
@@ -101,6 +101,17 @@ def moveFront(twist, pub):
     twist.angular.z = 0.0;
 
     pub.publish(twist)
+
+def stop(twist, pub):
+    twist.linear.x = 0.0;
+    twist.linear.y = 0.0;
+    twist.linear.z = 0.0
+    twist.angular.x = 0.0;
+    twist.angular.y = 0.0;
+    twist.angular.z = 0.0;
+    pub.publish(twist)
+    rospy.sleep(4.65)
+
 
 def nomalization(estimation):
     s = sum(estimation)
@@ -140,9 +151,9 @@ if __name__ == "__main__":
     rospy.init_node('topic_subscriber', anonymous=False)
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
     lognow = []
-    target_linear_vel = 0.01
     Kangular = 0.002
     Vangular = 0
+    firstYaw = 1.57
     sensorWork = 0.9
     Estimation = [0.041666] * 25
     White = [0, 0.9, 0.1, 0.1, 0.9, 0.9, 0.1, 0.1, 0.1, 0.9, 0.9, 0.1, 0.1, 0.1, 0.9, 0.1, 0.1, 0.9, 0.9, 0.1, 0.1, 0.1,
@@ -150,6 +161,7 @@ if __name__ == "__main__":
     Grey = [0, 0.1, 0.9, 0.9, 0.1, 0.1, 0.9, 0.9, 0.9, 0.1, 0.1, 0.9, 0.9, 0.9, 0.1, 0.9, 0.9, 0.1, 0.1, 0.9, 0.9, 0.9,
             0.1, 0.9, 0.9]
     # outBound = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
+    final_step = False
     grey = True
     white = False
     turn_aroundposi = False
@@ -162,7 +174,7 @@ if __name__ == "__main__":
     rospy.Subscriber('/light_sensor_plugin/leftLightSensor', Illuminance, callbacktwo)
     distance_x = 999999
     distance_y = 1
-    task = 5
+    task = 1
     # Main loop
     while (1):
         if (task == 1):
@@ -207,16 +219,12 @@ if __name__ == "__main__":
 
             if (targetx < pose_x and targety < pose_y):
                 alpha = beta - yaw + pi
-                print("1")
             if (targetx > pose_x and targety < pose_y):
-                print("2")
                 alpha = beta - yaw
             if (targetx < pose_x and targety > pose_y):
                 alpha = beta - yaw + pi
-                print("3")
             if (targetx > pose_x and targety > pose_y):
                 alpha = beta - yaw
-                print("4")
 
             if (yaw > 1.56):
                 turn_aroundposi = True
@@ -251,7 +259,7 @@ if __name__ == "__main__":
             if(abs(distance_y)<0.1 and abs(distance_x)<0.1):
                 twist.linear.x = 0.1*math.sqrt(abs(distance_y)*abs(distance_y)+abs(distance_x)*abs(distance_x))
                 counter +=1
-                if(counter== 70):
+                if(counter== 50):
                     twist.linear.x = 0.0;
                     twist.linear.y = 0.0;
                     twist.linear.z = 0.0;
@@ -260,7 +268,6 @@ if __name__ == "__main__":
                     twist.angular.z =Vangular;
                     counter =0
                     pub.publish(twist)
-                    print("while one end")
 
                     task += 1
 
@@ -273,26 +280,16 @@ if __name__ == "__main__":
             twist.angular.y = 0.0;
             twist.angular.z = Vangular;
             pub.publish(twist)
-            print("a")
-            print(alpha)
-            print("b")
-            print(beta)
-            print("vol")
-            print(Vangular)
-            print("yaw")
-            print(yaw)
-            print("--------------------------------------")
+
 
         rospy.sleep(0.2)
         if(task == 3):
             angv =0
-            print(left)
             twist = Twist()
             ang=targetyaw-yaw
-            print(ang)
             if(abs(ang)<0.05):
                 twist = Twist()
-                twist.linear.x = 0.05;
+                twist.linear.x = 0.03;
                 twist.linear.y = 0.0;
                 twist.linear.z = 0.0;
                 twist.angular.x = 0.0;
@@ -308,19 +305,26 @@ if __name__ == "__main__":
                 twist.angular.y = 0.0;
                 twist.angular.z = ang*0.1;
                 pub.publish(twist)
-            rospy.sleep(0.2)
             if(left<175 and left>165 ):
-                task+=1
+                print("green")
+                targetx = 2.742043
+                targety = -2.070211
+                stop(twist, pub)
+                task += 1
+            elif(left<150 and left>140):
+                print("blue")
+                targetx = 3.149552
+                targety = -2.032444
+                stop(twist, pub)
+                task += 1
 
         if (task == 4):
             angv = 0
-            print(task)
             twist = Twist()
             ang = targetyaw - yaw
-            print(x_direction_force)
             if (abs(ang) < 0.05):
                 twist = Twist()
-                twist.linear.x = -0.05;
+                twist.linear.x = -0.03;
                 twist.linear.y = 0.0;
                 twist.linear.z = 0.0;
                 twist.angular.x = 0.0;
@@ -338,8 +342,7 @@ if __name__ == "__main__":
                 pub.publish(twist)
             rospy.sleep(0.2)
             if(abs(x_direction_force)<100):
-                targetx = 2.532043
-                targety = -2.270211
+                stop(twist,pub)
                 task+=1
 
 
@@ -347,25 +350,12 @@ if __name__ == "__main__":
 
         if(task == 5):
             beta = math.atan(distance_y / distance_x)
-            #
-            # if(turn_aroundposi == True and yaw <-1.6):
-            #     yaw = 3.14
-            # elif (turn_aroundnega == True and yaw >1.6):
-            #     yaw = -3.14
-
-            targetx = 2.097516
-            targety = -5.173410
-
-            print(task)
             if (targetx < pose_x and targety < pose_y):
                 alpha = beta - yaw - pi
-                print("1")
             if (targetx > pose_x and targety < pose_y):
-                print("2")
                 alpha = beta - yaw
             if (targetx < pose_x and targety > pose_y):
                 alpha = beta - yaw - pi
-                print("3")
             if (targetx > pose_x and targety > pose_y):
                 alpha = beta - yaw
 
@@ -377,11 +367,12 @@ if __name__ == "__main__":
                 turn_aroundposi = False
                 turn_aroundnega = True
 
+
+
             if(alpha<0):
                 Vangular = -math.sqrt(alpha*alpha)*0.1
             if(alpha>0):
                 Vangular = math.sqrt(alpha*alpha)*0.1
-
 
             if(abs(distance_y)>0.1 or abs(distance_x)>0.1):
                 if(y_direction_force>0):
@@ -393,46 +384,52 @@ if __name__ == "__main__":
                     if (Vangular > 0.15):
                         Vangular = 0.15
             if (abs(distance_y) < 0.15 and abs(distance_x) < 0.15):
-                print("---------------------------------------------------------------")
                 targetx = 2.097516
                 targety = -5.173410
-
-
+                final_step = True
                 if(alpha< -1.4 and alpha):
                     Vangular = -0.05
                 if(alpha >1.4 and alpha):
                     Vangular = 0.05
             twist = Twist()
-            twist.linear.x = 0.03;
+            if (abs(distance_y) < 0.1 and abs(distance_x) < 0.1 and final_step == True):
+                twist.linear.x = 0.1 * math.sqrt(abs(distance_y) * abs(distance_y) + abs(distance_x) * abs(distance_x))
+                counter += 1
+                print("success")
+                if (counter == 30):
+                    twist.linear.x = 0.0;
+                    twist.linear.y = 0.0;
+                    twist.linear.z = 0.0;
+                    twist.angular.x = 0.0;
+                    twist.angular.y = 0.0;
+                    twist.angular.z = Vangular;
+                    counter = 0
+                    print("reach the start point")
+                    if(2>yaw and yaw<1.57):
+                        twist.linear.x = 0.0;
+                        twist.linear.y = 0.0;
+                        twist.linear.z = 0.0;
+                        twist.angular.x = 0.0;
+                        twist.angular.y = 0.0;
+                        twist.angular.z = -0.01;
+                        pub.publish(twist)
+
+                        task =2
+                        targetx = 1.1148569
+                        targety = -1.492956
+                        final_step = False
+
+
+            else:
+                twist.linear.x = 0.03;
             twist.linear.y = 0.0;
             twist.linear.z = 0.0;
             twist.angular.x = 0.0;
             twist.angular.y = 0.0;
             twist.angular.z =Vangular;
+
             pub.publish(twist)
 
-            print("a")
-            print(alpha)
-            print("a1")
-            print("b")
-            print(beta)
-            print("vol")
-            print(Vangular)
-            print("yaw")
-            print(yaw)
-            print("--------------------------------------")
-
-
-
-
-
-
-    #    137min 163max(grey)             228min 246max(white)
-    #     twist = Twist()
-
-
-           # publish the angular velocity and linear velocity of the waffle-pi
-           #  137min 163max(grey)             228min 246max(white)
 
     if os.name != 'nt':
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
